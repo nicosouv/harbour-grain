@@ -16,6 +16,12 @@ double managerCost(int g);
 double genMultiplier(int count);                    // x2 at each owned-count milestone
 int    nextMilestoneAt(int count);                  // next milestone count, 0 if past the last
 double creatureMult(const GameState& s);            // small bonus from the menagerie's residents
+double echoMult(const GameState& s);                // small bonus from owned improvements
+bool   echoOwned(const GameState& s, int i);
+int    momentsResolved(const GameState& s);         // buried + sat (unlock counter for echoes)
+double founderSleep(const GameState& s);            // display-only readouts, 0..1
+double founderFocus(const GameState& s);
+int    founderAge(const GameState& s, qint64 nowMs); // starts at 20, one year per real day
 double genRate(const GameState& s, int g);          // full per-second output of a generator
 double cyclePayout(const GameState& s, int g);      // one manual cycle's payout (pre-foundation)
 double tapValue(const GameState& s);                // base recette per tap (pre-foundation)

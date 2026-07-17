@@ -83,6 +83,50 @@
         <source>Start over with a permanent bonus</source>
         <translation>Start over with a permanent bonus</translation>
     </message>
+    <message>
+        <source>Improvements</source>
+        <translation>Improvements</translation>
+    </message>
+    <message>
+        <source>Repaint the gate</source>
+        <translation>Repaint the gate</translation>
+    </message>
+    <message>
+        <source>Widen the parking lot</source>
+        <translation>Widen the parking lot</translation>
+    </message>
+    <message>
+        <source>Frame the opening photo</source>
+        <translation>Frame the opening photo</translation>
+    </message>
+    <message>
+        <source>Celebrate the park's anniversary</source>
+        <translation>Celebrate the park's anniversary</translation>
+    </message>
+    <message>
+        <source>Sleep at the office</source>
+        <translation>Sleep at the office</translation>
+    </message>
+    <message>
+        <source>Stronger coffee</source>
+        <translation>Stronger coffee</translation>
+    </message>
+    <message>
+        <source>Skip the aviary in the morning</source>
+        <translation>Skip the aviary in the morning</translation>
+    </message>
+    <message>
+        <source>Rehearse the park's story</source>
+        <translation>Rehearse the park's story</translation>
+    </message>
+    <message>
+        <source>Put the old photos away</source>
+        <translation>Put the old photos away</translation>
+    </message>
+    <message>
+        <source>Don't think about it</source>
+        <translation>Don't think about it</translation>
+    </message>
 </context>
 <context>
     <name>BreakdownPage</name>
@@ -121,6 +165,22 @@
     <message>
         <source>Breakdown</source>
         <translation>Breakdown</translation>
+    </message>
+    <message>
+        <source>The founder</source>
+        <translation>The founder</translation>
+    </message>
+    <message>
+        <source>Age</source>
+        <translation>Age</translation>
+    </message>
+    <message>
+        <source>Sleep</source>
+        <translation>Sleep</translation>
+    </message>
+    <message>
+        <source>Focus</source>
+        <translation>Focus</translation>
     </message>
 </context>
 <context>
@@ -202,6 +262,69 @@
     <message>
         <source>care</source>
         <translation>care</translation>
+    </message>
+</context>
+<context>
+    <name>harbour-grain</name>
+    <message>
+        <source>We did it. We actually did it.</source>
+        <translation>We did it. We actually did it.</translation>
+    </message>
+    <message>
+        <source>This time, we do it right.</source>
+        <translation>This time, we do it right.</translation>
+    </message>
+    <message>
+        <source>A coat of paint, and everything starts fresh.</source>
+        <translation>A coat of paint, and everything starts fresh.</translation>
+    </message>
+    <message>
+        <source>Saturdays are full now.</source>
+        <translation>Saturdays are full now.</translation>
+    </message>
+    <message>
+        <source>That photo. Everyone's smiling in it.</source>
+        <translation>That photo. Everyone's smiling in it.</translation>
+    </message>
+    <message>
+        <source>Ten years already. She gave a speech.</source>
+        <translation>Ten years already. She gave a speech.</translation>
+    </message>
+    <message>
+        <source>I sleep better here than at home anyway.</source>
+        <translation>I sleep better here than at home anyway.</translation>
+    </message>
+    <message>
+        <source>Third coffee. The numbers won't sit still.</source>
+        <translation>Third coffee. The numbers won't sit still.</translation>
+    </message>
+    <message>
+        <source>The birds stare at me in the morning.</source>
+        <translation>The birds stare at me in the morning.</translation>
+    </message>
+    <message>
+        <source>I know the story by heart. That's the problem.</source>
+        <translation>I know the story by heart. That's the problem.</translation>
+    </message>
+    <message>
+        <source>Old photos are better in a drawer.</source>
+        <translation>Old photos are better in a drawer.</translation>
+    </message>
+    <message>
+        <source>It passes. It always ends up passing.</source>
+        <translation>It passes. It always ends up passing.</translation>
+    </message>
+    <message>
+        <source>You're twenty. A plot at the edge of town, a friend who believes in it as much as you do, and enough money to last one summer.</source>
+        <translation>You're twenty. A plot at the edge of town, a friend who believes in it as much as you do, and enough money to last one summer.</translation>
+    </message>
+    <message>
+        <source>Make it a place people remember.</source>
+        <translation>Make it a place people remember.</translation>
+    </message>
+    <message>
+        <source>Open the park</source>
+        <translation>Open the park</translation>
     </message>
 </context>
 </TS>

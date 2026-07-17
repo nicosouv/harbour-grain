@@ -32,6 +32,13 @@ class GrainController : public QObject
     Q_PROPERTY(double tapPower READ tapPower NOTIFY stateChanged)
 
     Q_PROPERTY(int epoch READ epoch NOTIFY stateChanged)
+    Q_PROPERTY(bool arrived READ arrived NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList echoes READ echoes NOTIFY stateChanged)
+    Q_PROPERTY(bool founderVisible READ founderVisible NOTIFY stateChanged)
+    Q_PROPERTY(QString pendingNarration READ pendingNarration NOTIFY stateChanged)
+    Q_PROPERTY(double sleepPercent READ sleepPercent NOTIFY stateChanged)
+    Q_PROPERTY(double focusPercent READ focusPercent NOTIFY stateChanged)
+    Q_PROPERTY(int founderAge READ founderAgeQ NOTIFY liveChanged)
     Q_PROPERTY(QVariantList generators READ generators NOTIFY stateChanged)
     Q_PROPERTY(QStringList creatures READ creatures NOTIFY stateChanged)
     Q_PROPERTY(double creatureBonusPercent READ creatureBonusPercent NOTIFY stateChanged)
@@ -72,6 +79,13 @@ public:
     QVariantList generators() const;
     QStringList creatures() const;
     double creatureBonusPercent() const;
+    bool arrived() const;
+    QVariantList echoes() const;
+    bool founderVisible() const;
+    QString pendingNarration() const;
+    double sleepPercent() const;
+    double focusPercent() const;
+    int founderAgeQ() const;
     int buyAmount() const;
     void setBuyAmount(int n);
 
@@ -96,6 +110,9 @@ public:
     Q_INVOKABLE void buy(int g);          // buys `buyAmount` units, all-or-nothing
     Q_INVOKABLE void hire(int g);
     Q_INVOKABLE void run(int g);          // start a manual production cycle
+    Q_INVOKABLE void arrive();            // step past the intro
+    Q_INVOKABLE void buyEcho(int i);      // one-shot improvement
+    Q_INVOKABLE void ackNarration();      // mark the pending narration as shown
     Q_INVOKABLE void inaugurate();
     Q_INVOKABLE void care(const QString& kind);   // "feed" | "linger"
     Q_INVOKABLE void bury();
@@ -110,6 +127,9 @@ public:
 
     // Epoch recette over time, downsampled for the chart: [{ t, v }].
     Q_INVOKABLE QVariantList history() const;
+
+    // Founder sleep readout over time (one point per resolved moment): [{ t, v }].
+    Q_INVOKABLE QVariantList sleepHistory() const;
 
     // Short human formatting for big numbers ("12,340", "1.24 M").
     Q_INVOKABLE QString fmt(double value) const;
@@ -143,6 +163,7 @@ private:
 
     QVector<QPair<qint64, double> > m_history;  // (instant, epochRecette) for the chart
     int m_historyEpoch = 0;
+    QVector<QPair<qint64, double> > m_founderHistory;  // (instant, sleep) at each moment
 };
 
 } // namespace grain

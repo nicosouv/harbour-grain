@@ -90,6 +90,9 @@ private slots:
     void foldBuryTightensCadence();
     void foldSitEasesAndCosts();
     void foldConfessResetsEpoch();
+    void foldArriveAndAge();
+    void foldEchoUnlockAndBuy();
+    void founderReadouts();
     void foldReplayDeterministic();
 };
 
@@ -429,6 +432,66 @@ void TstGrain::foldConfessResetsEpoch()
     QVERIFY(s3.opened);
     QCOMPARE(s3.epoch, 1);
     QCOMPARE(s3.openedAtMs, Q_INT64_C(9600));
+}
+
+void TstGrain::foldArriveAndAge()
+{
+    QVector<Event> v;
+    v.append(ev("arrive", json({{"at", 1000.0}})));
+    GameState s = fold(v, kSalt);
+    QVERIFY(s.arrived);
+    QCOMPARE(s.arrivedAtMs, Q_INT64_C(1000));
+    QCOMPARE(founderAge(s, 1000), Balance::kStartAge);
+    QCOMPARE(founderAge(s, 1000 + 3 * Balance::kAgeYearMs), Balance::kStartAge + 3);
+    QCOMPARE(founderAge(s, 1000 + 1000 * Balance::kAgeYearMs), Balance::kMaxAge);
+
+    // A refound rebuilds the park, not the years.
+    v.append(tap(1000, 2000));
+    v.append(confess(3000));
+    s = fold(v, kSalt);
+    QVERIFY(s.arrived);
+    QCOMPARE(s.arrivedAtMs, Q_INT64_C(1000));
+}
+
+void TstGrain::foldEchoUnlockAndBuy()
+{
+    QVector<Event> v = richStart(100000);
+    v.append(open(1000));
+
+    // No resolved moment yet: improvements stay locked.
+    v.append(ev("improve", json({{"i", 0}, {"at", 1500.0}})));
+    GameState s = fold(v, kSalt);
+    QVERIFY(!echoOwned(s, 0));
+
+    // One resolved moment unlocks exactly the first one.
+    v.append(bury(2000));
+    v.append(ev("improve", json({{"i", 1}, {"at", 2500.0}})));
+    v.append(ev("improve", json({{"i", 0}, {"at", 2600.0}})));
+    s = fold(v, kSalt);
+    QVERIFY(echoOwned(s, 0));
+    QVERIFY(!echoOwned(s, 1));
+    QVERIFY(std::fabs(echoMult(s) - (1.0 + Balance::kEchoBonus[0])) < 1e-12);
+
+    // Owning is one-shot: a replayed purchase doesn't charge again.
+    const double after = s.recette;
+    v.append(ev("improve", json({{"i", 0}, {"at", 2700.0}})));
+    QVERIFY(std::fabs(fold(v, kSalt).recette - after) < 1e-9);
+}
+
+void TstGrain::founderReadouts()
+{
+    GameState s;
+    QCOMPARE(founderSleep(s), 1.0);
+    QCOMPARE(founderFocus(s), 1.0);
+    s.buried = 3;
+    QVERIFY(founderSleep(s) < 1.0);
+    QVERIFY(founderFocus(s) < 1.0);
+    s.sat = 50;
+    QCOMPARE(founderSleep(s), 1.0);   // clamped back up
+    s.sat = 0;
+    s.buried = 100;
+    QCOMPARE(founderSleep(s), Balance::kSleepFloor);
+    QCOMPARE(founderFocus(s), Balance::kFocusFloor);
 }
 
 void TstGrain::foldReplayDeterministic()

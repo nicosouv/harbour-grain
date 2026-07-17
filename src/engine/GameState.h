@@ -16,6 +16,8 @@ struct GenState {
 
 struct GameState {
     int    epoch = 0;            // incremented by each refound; 0 is the first life
+    bool   arrived = false;      // the player has read the intro and stepped in
+    qint64 arrivedAtMs = 0;      // when this life started (age anchor; survives refounds)
 
     double recette = 0.0;        // spendable balance
     double soin = 0.0;           // quiet balance (not spent in v0.1)
@@ -37,6 +39,8 @@ struct GameState {
 
     int    prestigePoints = 0;
     double bonusMult = 1.0;      // banked refound multiplier on all income
+
+    quint32 echoes = 0;          // bitmask of owned improvements (persists across epochs)
 
     GenState gens[Balance::GenCount];
 

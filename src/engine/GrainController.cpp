@@ -30,12 +30,16 @@ GrainController::GrainController(QObject* parent)
     m_store.bootstrap(entropy != 0 ? entropy : Q_UINT64_C(0xC0FFEE));
     m_salt = m_store.installSalt();
 
-    // Fold the whole log, capturing the chart history along the way.
+    // Fold the whole log, capturing the chart histories along the way.
     m_state = GameState();
     const QVector<Event> events = m_store.events();
     for (int i = 0; i < events.size(); ++i) {
         applyEvent(m_state, events.at(i), m_salt);
         recordHistory(events.at(i).tsMs);
+        if (events.at(i).kind == QLatin1String("bury")
+            || events.at(i).kind == QLatin1String("sit")) {
+            m_founderHistory.append(qMakePair(events.at(i).tsMs, founderSleep(m_state)));
+        }
     }
 
     // Offline progress: one coarse tick covering the whole absence, managers only.
@@ -166,6 +170,98 @@ double GrainController::creatureBonusPercent() const
     return (creatureMult(m_state) - 1.0) * 100.0;
 }
 
+bool GrainController::arrived() const { return m_state.arrived; }
+
+void GrainController::arrive()
+{
+    if (m_state.arrived)
+        return;
+    appendSimple(QLatin1String("arrive"), m_clock.nowMs());
+    emit stateChanged();
+    emit liveChanged();
+}
+
+QVariantList GrainController::echoes() const
+{
+    // One row per unlocked improvement (one unlocks per resolved cover moment).
+    QVariantList out;
+    const int unlocked = momentsResolved(m_state) < Balance::kEchoCount
+        ? momentsResolved(m_state) : Balance::kEchoCount;
+    for (int i = 0; i < unlocked; ++i) {
+        QVariantMap row;
+        row.insert(QStringLiteral("index"), i);
+        row.insert(QStringLiteral("cost"), Balance::kEchoCost[i]);
+        row.insert(QStringLiteral("bonus"), Balance::kEchoBonus[i] * 100.0);
+        row.insert(QStringLiteral("owned"), echoOwned(m_state, i));
+        out.append(row);
+    }
+    return out;
+}
+
+void GrainController::buyEcho(int i)
+{
+    if (i < 0 || i >= Balance::kEchoCount)
+        return;
+    flushNow();
+    if (echoOwned(m_state, i) || momentsResolved(m_state) < i + 1
+        || m_state.recette < Balance::kEchoCost[i])
+        return;
+    QJsonObject p;
+    p.insert(QLatin1String("i"), i);
+    p.insert(QLatin1String("at"), static_cast<double>(m_clock.nowMs()));
+    appendAndApply(QLatin1String("improve"),
+                   QString::fromUtf8(QJsonDocument(p).toJson(QJsonDocument::Compact)));
+    emit stateChanged();
+    emit liveChanged();
+}
+
+bool GrainController::founderVisible() const
+{
+    return momentsResolved(m_state) >= 1;
+}
+
+double GrainController::sleepPercent() const { return founderSleep(m_state) * 100.0; }
+double GrainController::focusPercent() const { return founderFocus(m_state) * 100.0; }
+
+int GrainController::founderAgeQ() const
+{
+    return founderAge(m_state, m_clock.nowMs());
+}
+
+QString GrainController::pendingNarration() const
+{
+    if (!m_state.arrived)
+        return QString();
+    if (m_state.epoch > 0
+        && !m_settings.value(QStringLiteral("narr/refound_%1").arg(m_state.epoch)).toBool())
+        return QStringLiteral("refound");
+    if (m_state.opened
+        && !m_settings.value(QStringLiteral("narr/open_%1").arg(m_state.epoch)).toBool())
+        return QStringLiteral("open");
+    const int level = m_settings.value(QStringLiteral("narr/level"), 0).toInt();
+    const int resolved = momentsResolved(m_state) < Balance::kEchoCount
+        ? momentsResolved(m_state) : Balance::kEchoCount;
+    if (resolved > level)
+        return QStringLiteral("echo%1").arg(level + 1);
+    return QString();
+}
+
+void GrainController::ackNarration()
+{
+    const QString pending = pendingNarration();
+    if (pending.isEmpty())
+        return;
+    if (pending == QLatin1String("refound")) {
+        m_settings.setValue(QStringLiteral("narr/refound_%1").arg(m_state.epoch), true);
+    } else if (pending == QLatin1String("open")) {
+        m_settings.setValue(QStringLiteral("narr/open_%1").arg(m_state.epoch), true);
+    } else {
+        m_settings.setValue(QStringLiteral("narr/level"),
+                            m_settings.value(QStringLiteral("narr/level"), 0).toInt() + 1);
+    }
+    emit stateChanged();
+}
+
 int GrainController::buyAmount() const { return m_buyAmount; }
 
 void GrainController::setBuyAmount(int n)
@@ -241,6 +337,8 @@ void GrainController::appendAndApply(const QString& kind, const QString& payload
     e.payload = payload;
     applyEvent(m_state, e, m_salt);
     recordHistory(now);
+    if (kind == QLatin1String("bury") || kind == QLatin1String("sit"))
+        m_founderHistory.append(qMakePair(now, founderSleep(m_state)));
 }
 
 void GrainController::appendSimple(const QString& kind, qint64 at)
@@ -463,6 +561,18 @@ QVariantList GrainController::history() const
     return out;
 }
 
+QVariantList GrainController::sleepHistory() const
+{
+    QVariantList out;
+    for (int i = 0; i < m_founderHistory.size(); ++i) {
+        QVariantMap pt;
+        pt.insert(QStringLiteral("t"), static_cast<double>(m_founderHistory.at(i).first));
+        pt.insert(QStringLiteral("v"), m_founderHistory.at(i).second);
+        out.append(pt);
+    }
+    return out;
+}
+
 QString GrainController::fmt(double value) const
 {
     static const char* const kSuffix[] = { "", " k", " M", " B", " T", " P", " E" };
@@ -486,6 +596,9 @@ void GrainController::clearData()
     m_pendingTaps = 0;
     m_history.clear();
     m_historyEpoch = 0;
+    m_founderHistory.clear();
+    // A new life: forget the shown narrations along with everything else.
+    m_settings.remove(QStringLiteral("narr"));
     m_lastFlushMs = m_clock.nowMs();
     emit stateChanged();
     emit liveChanged();

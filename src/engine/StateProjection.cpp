@@ -108,10 +108,51 @@ double creatureMult(const GameState& s)
     return 1.0 + Balance::kCreaturePer * s.creatures.size();
 }
 
+bool echoOwned(const GameState& s, int i)
+{
+    return (s.echoes & (1u << i)) != 0;
+}
+
+double echoMult(const GameState& s)
+{
+    double sum = 0.0;
+    for (int i = 0; i < Balance::kEchoCount; ++i) {
+        if (echoOwned(s, i))
+            sum += Balance::kEchoBonus[i];
+    }
+    return 1.0 + sum;
+}
+
+int momentsResolved(const GameState& s)
+{
+    return s.buried + s.sat;
+}
+
+double founderSleep(const GameState& s)
+{
+    const double v = 1.0 - Balance::kSleepPerBury * s.buried + Balance::kSleepPerSit * s.sat;
+    return v < Balance::kSleepFloor ? Balance::kSleepFloor : (v > 1.0 ? 1.0 : v);
+}
+
+double founderFocus(const GameState& s)
+{
+    const double v = 1.0 - Balance::kFocusPerBury * s.buried + Balance::kFocusPerSit * s.sat;
+    return v < Balance::kFocusFloor ? Balance::kFocusFloor : (v > 1.0 ? 1.0 : v);
+}
+
+int founderAge(const GameState& s, qint64 nowMs)
+{
+    if (!s.arrived || s.arrivedAtMs <= 0 || nowMs <= s.arrivedAtMs)
+        return Balance::kStartAge;
+    const int years = static_cast<int>((nowMs - s.arrivedAtMs) / Balance::kAgeYearMs);
+    const int age = Balance::kStartAge + years;
+    return age > Balance::kMaxAge ? Balance::kMaxAge : age;
+}
+
 double genRate(const GameState& s, int g)
 {
     return s.gens[g].count * Balance::kGens[g].baseRate
-         * genMultiplier(s.gens[g].count) * s.bonusMult * creatureMult(s);
+         * genMultiplier(s.gens[g].count) * s.bonusMult * creatureMult(s) * echoMult(s);
 }
 
 double cyclePayout(const GameState& s, int g)
@@ -122,7 +163,7 @@ double cyclePayout(const GameState& s, int g)
 double tapValue(const GameState& s)
 {
     return (Balance::kTapBase + Balance::kTapPerGate * s.gens[Balance::Gate].count)
-         * s.bonusMult * creatureMult(s);
+         * s.bonusMult * creatureMult(s) * echoMult(s);
 }
 
 double baseRps(const GameState& s)
@@ -194,7 +235,19 @@ void applyEvent(GameState& s, const Event& e, quint64 salt)
     // Matured manual cycles pay out first, at this event's instant, whatever the event is.
     settleCycles(s, at);
 
-    if (e.kind == QLatin1String("tap")) {
+    if (e.kind == QLatin1String("arrive")) {
+        if (!s.arrived) {
+            s.arrived = true;
+            s.arrivedAtMs = at;
+        }
+    } else if (e.kind == QLatin1String("improve")) {
+        const int i = p.value(QLatin1String("i")).toInt(-1);
+        if (i >= 0 && i < Balance::kEchoCount && !echoOwned(s, i)
+            && momentsResolved(s) >= i + 1 && s.recette >= Balance::kEchoCost[i]) {
+            s.recette -= Balance::kEchoCost[i];
+            s.echoes |= (1u << i);
+        }
+    } else if (e.kind == QLatin1String("tap")) {
         const int n = p.value(QLatin1String("n")).toInt();
         if (n > 0)
             addIncome(s, tapValue(s) * n, kSrcTap);

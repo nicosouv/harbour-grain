@@ -5,6 +5,20 @@ import "../components"
 Page {
     id: page
 
+    function echoName(i) {
+        if (i === 0) return qsTr("Repaint the gate")
+        if (i === 1) return qsTr("Widen the parking lot")
+        if (i === 2) return qsTr("Frame the opening photo")
+        if (i === 3) return qsTr("Celebrate the park's anniversary")
+        if (i === 4) return qsTr("Sleep at the office")
+        if (i === 5) return qsTr("Stronger coffee")
+        if (i === 6) return qsTr("Skip the aviary in the morning")
+        if (i === 7) return qsTr("Rehearse the park's story")
+        if (i === 8) return qsTr("Put the old photos away")
+        if (i === 9) return qsTr("Don't think about it")
+        return ""
+    }
+
     function genName(id) {
         if (id === "gate") return qsTr("The gate")
         if (id === "kiosk") return qsTr("The kiosk")
@@ -325,6 +339,44 @@ Page {
                         icon.source: "image://theme/icon-m-people"
                         enabled: Game.recette >= modelData.managerCost
                         onClicked: Game.hire(modelData.index)
+                    }
+                }
+            }
+
+            SectionHeader {
+                visible: Game.echoes.length > 0
+                text: qsTr("Improvements")
+            }
+
+            Repeater {
+                model: Game.echoes
+
+                BackgroundItem {
+                    width: column.width
+                    height: Theme.itemSizeSmall
+                    enabled: !modelData.owned && Game.recette >= modelData.cost
+                    opacity: modelData.owned ? 0.55 : 1.0
+                    onClicked: Game.buyEcho(modelData.index)
+
+                    Label {
+                        x: Theme.horizontalPageMargin
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width * 0.6
+                        text: echoName(modelData.index)
+                        truncationMode: TruncationMode.Fade
+                        color: modelData.owned ? Theme.secondaryColor : Theme.primaryColor
+                    }
+                    Label {
+                        anchors {
+                            right: parent.right
+                            rightMargin: Theme.horizontalPageMargin
+                            verticalCenter: parent.verticalCenter
+                        }
+                        text: modelData.owned
+                              ? "+" + modelData.bonus.toFixed(0) + " %"
+                              : Game.fmt(modelData.cost)
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: modelData.owned ? Theme.secondaryColor : Theme.highlightColor
                     }
                 }
             }

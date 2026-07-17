@@ -46,9 +46,9 @@ static const int kMilestoneCount = 5;
 static const double kTapBase    = 1.0;   // recette per tap
 static const double kTapPerGate = 0.25;  // taps scale gently with gates owned
 
-// The grand opening: a one-shot inauguration node, first epoch only.
-static const double kOpeningUnlock  = 150.0;  // epoch recette earned before the node shows
-static const double kOpeningCost    = 250.0;
+// The grand opening: a one-shot inauguration node, offered once per epoch.
+static const double kOpeningUnlock  = 100.0;  // epoch recette earned before the node shows
+static const double kOpeningCost    = 150.0;
 static const double kOpeningInstant = 500.0;  // immediate bonus on inauguration
 static const double kFoundation     = 0.8;    // permanent coefficient applied to all income after it
 
@@ -70,7 +70,7 @@ static const char* const kSpecies[kSpeciesCount] = {
 
 // Cover moments: the first lands within the opening session, then episodic; cadence tightens
 // with each 'bury'.
-static const qint64 kMomentFirstMs = Q_INT64_C(1800000);     // ~30 min after the opening
+static const qint64 kMomentFirstMs = Q_INT64_C(600000);      // ~10 min after the opening
 static const qint64 kMomentBaseMs  = Q_INT64_C(10800000);    // then ~3 h between moments
 static const double kMomentDecay   = 0.85;                   // interval factor per net bury
 static const qint64 kMomentFloorMs = Q_INT64_C(2700000);     // never more often than 45 min
@@ -80,6 +80,29 @@ static const double kSitCostMin     = 50.0;
 // Refound (prestige): banked permanent bonus, classic idle reset. Offered only when it pays.
 static const double kPrestigePer      = 0.10;     // +10% income per point
 static const double kPrestigePointDiv = 100000.0; // points = floor(sqrt(epochRecette / div))
+
+// Improvements: one-shot upgrades, one unlocked per resolved cover moment. Labels live in QML;
+// here they are only an index, a price and a small permanent bonus.
+static const int kEchoCount = 10;
+static const double kEchoCost[kEchoCount] = {
+    400.0, 2400.0, 14000.0, 86000.0, 520000.0,
+    3100000.0, 19000000.0, 110000000.0, 670000000.0, 4000000000.0
+};
+static const double kEchoBonus[kEchoCount] = {
+    0.02, 0.02, 0.02, 0.03, 0.03, 0.03, 0.04, 0.04, 0.05, 0.05
+};
+
+// Founder readouts (display only): drift per cover choice, clamped. Age runs on real time from
+// the arrival and never resets — refounding rebuilds the park, not the years.
+static const int    kStartAge = 20;
+static const int    kMaxAge   = 79;
+static const qint64 kAgeYearMs = Q_INT64_C(86400000);   // one real day = one year
+static const double kSleepPerBury = 0.05;
+static const double kSleepPerSit  = 0.02;
+static const double kSleepFloor   = 0.35;
+static const double kFocusPerBury = 0.04;
+static const double kFocusPerSit  = 0.03;
+static const double kFocusFloor   = 0.30;
 
 // Ticks.
 static const qint64 kOfflineCapMs = Q_INT64_C(604800000);    // 7 days of offline progress
