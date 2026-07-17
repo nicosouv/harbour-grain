@@ -27,6 +27,7 @@ double sleepFactor(const GameState& s);             // scales taps and manual cy
 double focusFactor(const GameState& s);             // scales the managed flow
 int    founderAge(const GameState& s);              // starts at 20, advances with actions only
 bool   herGone(const GameState& s);                 // true after the first confession, forever
+int    flowerStage(const GameState& s);             // her flowerbed: grows with her, fades after
 double repairCost(const GameState& s, int g);       // fixing a broken attraction
 double tierCeiling(const GameState& s);             // soft cap on epoch income; <0 = none
 bool   raiseReady(const GameState& s, qint64 nowMs); // next funding round can be closed

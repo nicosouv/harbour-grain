@@ -8,6 +8,8 @@ Canvas {
 
     property int frame: 0
     property int age: 20
+    property bool herGone: false
+    property int flowerStage: 0
 
     // The place takes on a patina as the founder ages.
     function groundColor() {
@@ -204,6 +206,29 @@ Canvas {
             put(mx + 2, my + 1, "#8f8a80"); put(mx + 3, my + 1, "#a8a398")
             for (x = 0; x < 4; x++)
                 put(mx + x, my + 2, "#7d786e")
+        }
+
+        // Her flowerbed, by the main alley. It grows while she's here; nobody comments.
+        if (flowerStage > 0) {
+            _srand(97)
+            var fx = cx - 5
+            var fy = Math.floor(rows * 0.72)
+            var petals = ["#c86078", "#e0b23a", "#7da33f", "#d06040", "#9a8fc0", "#e8e0d0"]
+            ctx.globalAlpha = herGone ? 0.45 : 1.0
+            for (i = 0; i < flowerStage * 2; i++) {
+                put(fx + Math.floor(_rnd() * 4), fy - Math.floor(_rnd() * 2),
+                    petals[i % petals.length])
+            }
+            ctx.globalAlpha = 1.0
+        }
+
+        // She is at the aviary, or on the bench. Until she isn't.
+        if (!herGone) {
+            _srand(101)
+            var hx = Math.floor(cols * (0.2 + 0.5 * _rnd()))
+            var hy = Math.floor(rows * (0.35 + 0.3 * _rnd()))
+            put(hx + (frame === 0 ? 0 : 1), hy, "#c88098")
+            put(hx + (frame === 0 ? 0 : 1), hy - 1, "#e8d8c8")
         }
 
         // The kiosk cat: it sits somewhere with a view, and it watches. Every frame.

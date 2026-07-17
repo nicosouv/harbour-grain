@@ -222,6 +222,19 @@ bool herGone(const GameState& s)
     return s.epoch >= 1;
 }
 
+int flowerStage(const GameState& s)
+{
+    if (!herGone(s)) {
+        // She plants something every couple of years. Nobody says so.
+        const int stage = (s.age - Balance::kStartAge) / 2;
+        return stage > 6 ? 6 : stage;
+    }
+    if (s.flowerFrozen <= 0)
+        return 0;
+    const int faded = s.flowerFrozen - (s.age - s.departureAge) / 2;
+    return faded > 0 ? faded : 0;
+}
+
 double sleepFactor(const GameState& s)
 {
     const double t = (founderSleep(s) - Balance::kSleepFloor) / (1.0 - Balance::kSleepFloor);
@@ -480,6 +493,7 @@ void applyEvent(GameState& s, const Event& e, quint64 salt)
         if ((s.buried + s.sat) % Balance::kAgeMomentsPer == 0)
             addAge(s, 1);
     } else if (e.kind == QLatin1String("confess")) {
+        const int stageBefore = flowerStage(s);
         const int gained = static_cast<int>(
             std::floor(std::pow(s.epochRecette / Balance::kPrestigePointDiv,
                                 Balance::kPrestigeExp)));
@@ -497,6 +511,11 @@ void applyEvent(GameState& s, const Event& e, quint64 salt)
         s.raised = 0;
         s.lastRaiseMs = 0;
         addAge(s, Balance::kAgeConfess);
+        if (s.epoch == 1) {
+            // She leaves. The flowerbed stops changing, then fades over the years.
+            s.flowerFrozen = stageBefore;
+            s.departureAge = s.age;
+        }
         for (int g = 0; g < Balance::GenCount; ++g)
             s.gens[g] = GenState();
         // Soin, creatures, the years and the breakdown history persist: nothing is undone.

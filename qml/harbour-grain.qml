@@ -599,7 +599,9 @@ ApplicationWindow {
         anchors.fill: parent
         z: 9500
         color: "#161A20"
-        visible: !Game.arrived
+        opacity: Game.arrived ? 0 : 1
+        visible: opacity > 0
+        Behavior on opacity { NumberAnimation { duration: 1400 } }
 
         MouseArea { anchors.fill: parent }   // swallow input under the overlay
 

@@ -57,6 +57,8 @@ CoverBackground {
             bottom: parent.bottom
         }
         age: Game.founderAge
+        herGone: Game.herGone
+        flowerStage: Game.flowerStage
     }
 
     Label {

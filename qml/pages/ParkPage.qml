@@ -159,6 +159,8 @@ Page {
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 height: Theme.itemSizeHuge * 1.6
                 age: Game.founderAge
+                herGone: Game.herGone
+                flowerStage: Game.flowerStage
             }
 
             Item { width: 1; height: Theme.paddingMedium }

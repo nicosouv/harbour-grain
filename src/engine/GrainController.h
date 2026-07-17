@@ -42,6 +42,7 @@ class GrainController : public QObject
     Q_PROPERTY(int parkYear READ parkYear NOTIFY stateChanged)
     Q_PROPERTY(bool donutVisible READ donutVisible NOTIFY stateChanged)
     Q_PROPERTY(bool herGone READ herGoneQ NOTIFY stateChanged)
+    Q_PROPERTY(int flowerStage READ flowerStageQ NOTIFY stateChanged)
 
     // Funding rounds.
     Q_PROPERTY(int raiseTier READ raiseTier NOTIFY stateChanged)
@@ -110,6 +111,7 @@ public:
     int parkYear() const;
     bool donutVisible() const;
     bool herGoneQ() const;
+    int flowerStageQ() const;
     int raiseTier() const;
     bool raiseReadyQ() const;
     bool raisePending() const;

@@ -253,6 +253,7 @@ int GrainController::founderAgeQ() const
 }
 
 bool GrainController::herGoneQ() const { return herGone(m_state); }
+int GrainController::flowerStageQ() const { return flowerStage(m_state); }
 int GrainController::raiseTier() const { return m_state.raised; }
 
 bool GrainController::raiseReadyQ() const

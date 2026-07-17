@@ -97,6 +97,7 @@ private slots:
     void foldAgeFromActions();
     void foldRaiseAndCeiling();
     void foldMalusAndAbsence();
+    void foldFlowerbed();
     void foldIncidentAndRepair();
     void foldEchoUnlockAndBuy();
     void founderReadouts();
@@ -533,6 +534,31 @@ void TstGrain::foldMalusAndAbsence()
     gone.epoch = 1;
     QVERIFY(std::fabs(soinPerSec(gone)
                       - Balance::kSoinBase * Balance::kAbsenceSoinScale) < 1e-12);
+}
+
+void TstGrain::foldFlowerbed()
+{
+    // It grows with her, two years a stage, capped.
+    GameState here;
+    here.arrived = true;
+    here.age = Balance::kStartAge;
+    QCOMPARE(flowerStage(here), 0);
+    here.age = Balance::kStartAge + 6;
+    QCOMPARE(flowerStage(here), 3);
+    here.age = Balance::kStartAge + 40;
+    QCOMPARE(flowerStage(here), 6);
+
+    // The confession freezes it, then it fades.
+    QVector<Event> v = richStart(100000);   // wealth marks age the founder to 24
+    v.append(open(1000));                   // 25
+    v.append(confess(2000));                // 27, and she leaves
+    GameState s = fold(v, kSalt);
+    QVERIFY(herGone(s));
+    QCOMPARE(s.flowerFrozen, 2);            // (25-20)/2 at the moment she left
+    QCOMPARE(s.departureAge, 27);
+    QCOMPARE(flowerStage(s), 2);
+    s.age = s.departureAge + 4;
+    QCOMPARE(flowerStage(s), 0);
 }
 
 void TstGrain::foldIncidentAndRepair()

@@ -47,6 +47,9 @@ struct GameState {
     int    age = Balance::kStartAge;  // advances with actions only; never resets
     int    wealthMarks = 0;      // wealth thresholds crossed this epoch (each adds years)
 
+    int    departureAge = 0;     // how old the founder was when she left
+    int    flowerFrozen = -1;    // her flowerbed's stage at that moment (then it fades)
+
     int    raised = 0;           // funding tiers closed this epoch
     qint64 lastRaiseMs = 0;      // real-time cooldown anchor for the next raise
     int    raisedFast = 0;       // the lifetime cursor: fast vs slow choices
