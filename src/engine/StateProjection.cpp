@@ -180,7 +180,7 @@ qint64 momentIntervalMs(const GameState& s, quint64 salt)
 
 bool momentDue(const GameState& s, quint64 salt, qint64 nowMs)
 {
-    if (s.epoch != 0 || !s.opened)
+    if (!s.opened)
         return false;
     const qint64 anchor = s.lastMomentMs > s.openedAtMs ? s.lastMomentMs : s.openedAtMs;
     return nowMs - anchor >= momentIntervalMs(s, salt);
@@ -225,7 +225,8 @@ void applyEvent(GameState& s, const Event& e, quint64 salt)
             s.gens[g].runningUntilMs = at + Balance::kGens[g].cycleMs;
         }
     } else if (e.kind == QLatin1String("open")) {
-        if (s.epoch == 0 && !s.opened && s.recette >= Balance::kOpeningCost) {
+        // Available once per epoch: every refounded park gets its own inauguration.
+        if (!s.opened && s.recette >= Balance::kOpeningCost) {
             s.recette -= Balance::kOpeningCost;
             s.opened = true;
             s.openedAtMs = at;

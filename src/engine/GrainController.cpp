@@ -180,8 +180,7 @@ void GrainController::setBuyAmount(int n)
 
 bool GrainController::openingVisible() const
 {
-    return m_state.epoch == 0 && !m_state.opened
-        && m_state.epochRecette >= Balance::kOpeningUnlock;
+    return !m_state.opened && m_state.epochRecette >= Balance::kOpeningUnlock;
 }
 
 bool GrainController::openingDone() const { return m_state.opened; }
@@ -351,7 +350,7 @@ void GrainController::run(int g)
 void GrainController::inaugurate()
 {
     flushNow();
-    if (!(m_state.epoch == 0 && !m_state.opened && m_state.recette >= Balance::kOpeningCost))
+    if (m_state.opened || m_state.recette < Balance::kOpeningCost)
         return;
     appendSimple(QLatin1String("open"), m_clock.nowMs());
     emit stateChanged();

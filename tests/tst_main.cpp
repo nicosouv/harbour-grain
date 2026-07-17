@@ -415,13 +415,20 @@ void TstGrain::foldConfessResetsEpoch()
     QCOMPARE(s.creatures, before.creatures);
     QVERIFY(s.allRecette > 0.0);
 
-    // The coefficient is gone: income is base only, and 'open' can't recur in epoch 1.
+    // The coefficient is gone: income is base only again.
     QVector<Event> v2 = v;
     v2.append(tap(10, 9500));
-    v2.append(open(9600));
     const GameState s2 = fold(v2, kSalt);
-    QVERIFY(!s2.opened);
     QVERIFY(std::fabs(s2.recette - tapValue(s) * 10) < 1e-9);
+
+    // The new epoch gets its own inauguration offer (the story is never locked out).
+    QVector<Event> v3 = v;
+    v3.append(tap(300, 9500));
+    v3.append(open(9600));
+    const GameState s3 = fold(v3, kSalt);
+    QVERIFY(s3.opened);
+    QCOMPARE(s3.epoch, 1);
+    QCOMPARE(s3.openedAtMs, Q_INT64_C(9600));
 }
 
 void TstGrain::foldReplayDeterministic()
