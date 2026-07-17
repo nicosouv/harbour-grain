@@ -364,7 +364,7 @@ QString GrainController::pendingNarration() const
         return QStringLiteral("sit5");
 
     // Decade birthdays, oldest missed first.
-    const int age = founderAge(m_state, now);
+    const int age = founderAge(m_state);
     for (int decade = 30; decade <= 70; decade += 10) {
         if (age >= decade && !beatSeen(QStringLiteral("birthday%1").arg(decade)))
             return QStringLiteral("birthday%1").arg(decade);
