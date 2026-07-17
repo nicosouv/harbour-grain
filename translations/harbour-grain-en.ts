@@ -42,6 +42,7 @@
     <message><source>out of order</source><translation>out of order</translation></message>
     <message><source>Decisions</source><translation>Decisions</translation></message>
     <message><source>Logbook</source><translation>Logbook</translation></message>
+    <message><source>Dashboard</source><translation>Dashboard</translation></message>
     <message><source>Max</source><translation>Max</translation></message>
     <message><source>Next</source><translation>Next</translation></message>
     <message><source>Double the maintenance crew</source><translation>Double the maintenance crew</translation></message>
@@ -96,6 +97,30 @@
     <message><source>Age</source><translation>Age</translation></message>
     <message><source>Sleep</source><translation>Sleep</translation></message>
     <message><source>Focus</source><translation>Focus</translation></message>
+</context>
+<context>
+    <name>StatsPage</name>
+    <message><source>Dashboard</source><translation>Dashboard</translation></message>
+    <message><source>Sources</source><translation>Sources</translation></message>
+    <message><source>Park life</source><translation>Park life</translation></message>
+    <message><source>animals</source><translation>animals</translation></message>
+    <message><source>care</source><translation>care</translation></message>
+    <message><source>The founder</source><translation>The founder</translation></message>
+    <message><source>Age</source><translation>Age</translation></message>
+    <message><source>Sleep</source><translation>Sleep</translation></message>
+    <message><source>Focus</source><translation>Focus</translation></message>
+    <message><source>Decisions</source><translation>Decisions</translation></message>
+    <message><source>By hand</source><translation>By hand</translation></message>
+    <message><source>The gate</source><translation>The gate</translation></message>
+    <message><source>The kiosk</source><translation>The kiosk</translation></message>
+    <message><source>The paths</source><translation>The paths</translation></message>
+    <message><source>The aviary</source><translation>The aviary</translation></message>
+    <message><source>The carousel</source><translation>The carousel</translation></message>
+    <message><source>The pond</source><translation>The pond</translation></message>
+    <message><source>The big wheel</source><translation>The big wheel</translation></message>
+    <message><source>The greenhouse</source><translation>The greenhouse</translation></message>
+    <message><source>The park museum</source><translation>The park museum</translation></message>
+    <message><source>The grand opening</source><translation>The grand opening</translation></message>
 </context>
 <context>
     <name>JournalPage</name>

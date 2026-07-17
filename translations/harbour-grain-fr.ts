@@ -42,6 +42,7 @@
     <message><source>out of order</source><translation>en panne</translation></message>
     <message><source>Decisions</source><translation>Décisions</translation></message>
     <message><source>Logbook</source><translation>Registre</translation></message>
+    <message><source>Dashboard</source><translation>Tableau de bord</translation></message>
     <message><source>Max</source><translation>Max</translation></message>
     <message><source>Next</source><translation>Suivant</translation></message>
     <message><source>Double the maintenance crew</source><translation>Doubler l'équipe d'entretien</translation></message>
@@ -96,6 +97,30 @@
     <message><source>Age</source><translation>Âge</translation></message>
     <message><source>Sleep</source><translation>Sommeil</translation></message>
     <message><source>Focus</source><translation>Concentration</translation></message>
+</context>
+<context>
+    <name>StatsPage</name>
+    <message><source>Dashboard</source><translation>Tableau de bord</translation></message>
+    <message><source>Sources</source><translation>Sources</translation></message>
+    <message><source>Park life</source><translation>La vie du parc</translation></message>
+    <message><source>animals</source><translation>animaux</translation></message>
+    <message><source>care</source><translation>soin</translation></message>
+    <message><source>The founder</source><translation>Le fondateur</translation></message>
+    <message><source>Age</source><translation>Âge</translation></message>
+    <message><source>Sleep</source><translation>Sommeil</translation></message>
+    <message><source>Focus</source><translation>Concentration</translation></message>
+    <message><source>Decisions</source><translation>Décisions</translation></message>
+    <message><source>By hand</source><translation>À la main</translation></message>
+    <message><source>The gate</source><translation>Le portail</translation></message>
+    <message><source>The kiosk</source><translation>La buvette</translation></message>
+    <message><source>The paths</source><translation>Les allées</translation></message>
+    <message><source>The aviary</source><translation>La volière</translation></message>
+    <message><source>The carousel</source><translation>Le carrousel</translation></message>
+    <message><source>The pond</source><translation>L'étang</translation></message>
+    <message><source>The big wheel</source><translation>La grande roue</translation></message>
+    <message><source>The greenhouse</source><translation>La serre</translation></message>
+    <message><source>The park museum</source><translation>Le musée du parc</translation></message>
+    <message><source>The grand opening</source><translation>La grande ouverture</translation></message>
 </context>
 <context>
     <name>JournalPage</name>

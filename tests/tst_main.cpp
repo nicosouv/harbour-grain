@@ -102,6 +102,7 @@ private slots:
     void foldEchoUnlockAndBuy();
     void founderReadouts();
     void foldReplayDeterministic();
+    void simulationTimeline();
 };
 
 void TstGrain::rngDeterminism()
@@ -667,6 +668,83 @@ void TstGrain::foldReplayDeterministic()
     QCOMPARE(a.creatures, b.creatures);
     QCOMPARE(a.prestigePoints, b.prestigePoints);
     QCOMPARE(a.lastSeenMs, b.lastSeenMs);
+}
+
+void TstGrain::simulationTimeline()
+{
+    // A whole life, played by a greedy optimizer bot at fold level: taps daily, buys what it
+    // can, hires every manager, opens, raises fast, buries every moment. Prints the timeline
+    // (CI logs) so every balance change gets a measured consequence.
+    GameState s;
+    QVector<Event> log;
+    qint64 t = 1000;
+    auto push = [&](const Event& e) {
+        log.append(e);
+        applyEvent(s, log.last(), kSalt);
+    };
+
+    push(ev("arrive", json({{"at", double(t)}})));
+
+    const qint64 stepMs = Q_INT64_C(600000);            // 10 simulated minutes
+    const qint64 horizon = Q_INT64_C(90) * 86400000;    // 90 days
+    qint64 lastTapDay = -1;
+    int raisedSeen = 0;
+
+    while (t < horizon && s.raised < Balance::kTierCount) {
+        t += stepMs;
+        push(tick(stepMs, false, t));
+
+        // One active spree per simulated day.
+        const qint64 day = t / 86400000;
+        if (day != lastTapDay) {
+            lastTapDay = day;
+            push(tap(1800, t));
+        }
+
+        if (!s.opened && s.epochRecette >= Balance::kOpeningUnlock
+            && s.recette >= Balance::kOpeningCost)
+            push(open(t));
+
+        // Buy dearest-first, a bounded burst per step.
+        for (int burst = 0; burst < 12; ++burst) {
+            bool bought = false;
+            for (int g = Balance::GenCount - 1; g >= 0; --g) {
+                if (s.recette >= genCost(s, g) * 2.0) {   // keep cash for managers
+                    push(buy(g, t));
+                    bought = true;
+                    break;
+                }
+            }
+            if (!bought)
+                break;
+        }
+        for (int g = 0; g < Balance::GenCount; ++g) {
+            if (s.gens[g].count > 0 && !s.gens[g].manager
+                && s.recette >= managerCost(g))
+                push(hire(g, t));
+            if (s.gens[g].broken && s.recette >= repairCost(s, g))
+                push(ev("repair", json({{"g", g}, {"at", double(t)}})));
+        }
+
+        if (momentDue(s, kSalt, t))
+            push(bury(t));
+
+        if (raiseReady(s, t)) {
+            push(raiseEv(s.raised, true, t));
+            qInfo("sim: tier %d closed on day %lld (age %d, events %d)",
+                  s.raised, static_cast<long long>(t / 86400000), founderAge(s), log.size());
+            raisedSeen = s.raised;
+        }
+    }
+
+    qInfo("sim: done — day %lld, tiers %d, age %d, epochRecette %.3g, buried %d, events %d",
+          static_cast<long long>(t / 86400000), s.raised, founderAge(s),
+          s.epochRecette, s.buried, log.size());
+
+    // Loose sanity bounds: the mid-game must be reachable, the life must fit in one life.
+    QVERIFY2(raisedSeen >= 4, "the greedy bot should close at least 4 tiers in 90 days");
+    QVERIFY(founderAge(s) <= Balance::kMaxAge);
+    QVERIFY(s.age >= Balance::kStartAge);
 }
 
 QTEST_GUILESS_MAIN(TstGrain)

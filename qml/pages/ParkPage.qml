@@ -132,14 +132,59 @@ Page {
 
     RemorsePopup { id: remorse }
 
+    // The ticker never leaves the screen: market-board type, under the thumb of the eye.
+    Column {
+        id: tickerHeader
+        anchors { top: parent.top; topMargin: Theme.paddingLarge; left: parent.left; right: parent.right }
+
+        Label {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: Game.fmt(page.shownRecette)
+            font.pixelSize: Theme.fontSizeHuge
+            font.bold: true
+            font.family: "Monospace"
+            color: Theme.highlightColor
+        }
+        Label {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "+" + Game.fmt(Game.recettePerSec) + "/s"
+                  + (Game.plateaued ? "  ·  " + qsTr("at capacity") : "")
+            font.pixelSize: Theme.fontSizeSmall
+            color: Theme.secondaryHighlightColor
+        }
+        // The quiet second ticker, easy to never look at.
+        Label {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: Game.fmt(Game.soin) + " " + qsTr("care")
+                  + (Game.bonusPercent > 0
+                     ? "   ·   +" + Game.bonusPercent.toFixed(0) + " % " + qsTr("permanent")
+                     : "")
+            font.pixelSize: Theme.fontSizeExtraSmall
+            color: Theme.secondaryColor
+            opacity: 0.6
+        }
+
+        Item { width: 1; height: Theme.paddingSmall }
+    }
+
     SilicaFlickable {
-        anchors.fill: parent
+        anchors {
+            top: tickerHeader.bottom
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+        clip: true
         contentHeight: column.height
 
         PullDownMenu {
             MenuItem {
                 text: qsTr("Settings")
                 onClicked: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
+            }
+            MenuItem {
+                text: qsTr("Dashboard")
+                onClicked: pageStack.push(Qt.resolvedUrl("StatsPage.qml"))
             }
             MenuItem {
                 text: qsTr("Logbook")
@@ -151,8 +196,6 @@ Page {
             id: column
             width: page.width
 
-            PageHeader { title: qsTr("The park") }
-
             // The park itself: grows with every purchase.
             ParkView {
                 x: Theme.horizontalPageMargin
@@ -161,36 +204,6 @@ Page {
                 age: Game.founderAge
                 herGone: Game.herGone
                 flowerStage: Game.flowerStage
-            }
-
-            Item { width: 1; height: Theme.paddingMedium }
-
-            // The ticker: the number the player chose to optimize. Market-board type.
-            Label {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: Game.fmt(page.shownRecette)
-                font.pixelSize: Theme.fontSizeHuge
-                font.bold: true
-                font.family: "Monospace"
-                color: Theme.highlightColor
-            }
-            Label {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "+" + Game.fmt(Game.recettePerSec) + "/s"
-                      + (Game.plateaued ? "  ·  " + qsTr("at capacity") : "")
-                font.pixelSize: Theme.fontSizeSmall
-                color: Theme.secondaryHighlightColor
-            }
-            // The quiet second ticker, easy to never look at.
-            Label {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: Game.fmt(Game.soin) + " " + qsTr("care")
-                      + (Game.bonusPercent > 0
-                         ? "   ·   +" + Game.bonusPercent.toFixed(0) + " % " + qsTr("permanent")
-                         : "")
-                font.pixelSize: Theme.fontSizeExtraSmall
-                color: Theme.secondaryColor
-                opacity: 0.6
             }
 
             // Epoch recette over time: one honest chart on the front page.
@@ -574,258 +587,6 @@ Page {
                 }
             }
 
-            // Income sources: the donut, one chart among the others.
-            SectionHeader {
-                visible: Game.donutVisible
-                text: qsTr("Sources")
-            }
-
-            Item {
-                id: donutCard
-                visible: Game.donutVisible
-                width: parent.width
-                height: donut.height
-
-                property var rows: Game.breakdown()
-
-                Connections {
-                    target: Game
-                    onStateChanged: {
-                        donutCard.rows = Game.breakdown()
-                        donut.requestPaint()
-                    }
-                }
-
-                Canvas {
-                    id: donut
-                    x: Theme.horizontalPageMargin
-                    width: Theme.itemSizeHuge * 1.4
-                    height: Theme.itemSizeHuge * 1.4
-
-                    onPaint: {
-                        var ctx = getContext("2d")
-                        ctx.clearRect(0, 0, width, height)
-                        var rows = donutCard.rows
-                        if (!rows || rows.length === 0) return
-                        var cx = width / 2, cy = height / 2
-                        var radius = width / 2 - Theme.paddingSmall
-                        var ring = radius * 0.42
-                        var a = -Math.PI / 2
-                        for (var i = 0; i < rows.length; i++) {
-                            var span = rows[i].share * 2 * Math.PI
-                            if (span <= 0) continue
-                            ctx.beginPath()
-                            ctx.arc(cx, cy, radius - ring / 2, a, a + span, false)
-                            ctx.lineWidth = ring
-                            ctx.strokeStyle = sourceColor(rows[i].id)
-                            ctx.stroke()
-                            a += span
-                        }
-                    }
-                }
-
-                Column {
-                    anchors {
-                        left: donut.right
-                        leftMargin: Theme.paddingLarge
-                        right: parent.right
-                        rightMargin: Theme.horizontalPageMargin
-                        verticalCenter: donut.verticalCenter
-                    }
-
-                    Repeater {
-                        model: donutCard.rows
-
-                        Row {
-                            spacing: Theme.paddingSmall
-
-                            Rectangle {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: Theme.paddingMedium
-                                height: Theme.paddingMedium
-                                radius: 2
-                                color: sourceColor(modelData.id)
-                            }
-                            Label {
-                                text: sourceName(modelData.id) + "  "
-                                      + (modelData.share * 100).toFixed(1) + " %"
-                                font.pixelSize: Theme.fontSizeExtraSmall
-                                color: Theme.secondaryColor
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Park life: the quiet side, in plain sight.
-            SectionHeader {
-                visible: Game.creatures.length > 0 || Game.soin >= 6
-                text: qsTr("Park life")
-            }
-
-            Item {
-                visible: Game.creatures.length > 0 || Game.soin >= 6
-                width: parent.width
-                height: lifeCol.height
-
-                Column {
-                    id: lifeCol
-                    x: Theme.horizontalPageMargin
-                    width: parent.width - 2 * Theme.horizontalPageMargin
-
-                    Flow {
-                        width: parent.width
-                        spacing: Theme.paddingSmall
-
-                        Repeater {
-                            model: Game.creatures
-
-                            Rectangle {
-                                width: Theme.paddingLarge
-                                height: Theme.paddingLarge
-                                radius: width / 2
-                                color: app.creatureColor(modelData)
-                                opacity: 0.9
-                            }
-                        }
-                    }
-
-                    Label {
-                        text: Game.creatures.length + " " + qsTr("animals")
-                              + "  ·  +" + Game.creatureBonusPercent.toFixed(1) + " %"
-                              + "  ·  " + Game.fmt(Game.soin) + " " + qsTr("care")
-                        font.pixelSize: Theme.fontSizeExtraSmall
-                        color: Theme.secondaryColor
-                    }
-
-                    Canvas {
-                        id: soinChart
-                        width: parent.width
-                        height: Theme.itemSizeSmall
-                        visible: Game.soinHistory().length >= 2
-
-                        onPaint: {
-                            var ctx = getContext("2d")
-                            ctx.clearRect(0, 0, width, height)
-                            var pts = Game.soinHistory()
-                            if (pts.length < 2) return
-                            var minT = pts[0].t, maxT = pts[pts.length - 1].t
-                            var maxV = pts[pts.length - 1].v
-                            if (maxT - minT <= 0 || maxV <= 0) return
-                            ctx.beginPath()
-                            for (var i = 0; i < pts.length; i++) {
-                                var px = (pts[i].t - minT) / (maxT - minT) * width
-                                var py = height - 2 - (pts[i].v / maxV) * (height - 4)
-                                if (i === 0) ctx.moveTo(px, py)
-                                else ctx.lineTo(px, py)
-                            }
-                            ctx.strokeStyle = "#7DA33F"
-                            ctx.lineWidth = 2
-                            ctx.stroke()
-                        }
-
-                        Connections {
-                            target: Game
-                            onStateChanged: soinChart.requestPaint()
-                        }
-                    }
-                }
-            }
-
-            // The founder.
-            SectionHeader {
-                visible: Game.founderVisible
-                text: qsTr("The founder")
-            }
-
-            Column {
-                visible: Game.founderVisible
-                width: parent.width
-
-                DetailItem { label: qsTr("Age"); value: "" + Game.founderAge }
-                DetailItem { label: qsTr("Sleep"); value: Game.sleepPercent.toFixed(0) + " %" }
-                DetailItem { label: qsTr("Focus"); value: Game.focusPercent.toFixed(0) + " %" }
-
-                Canvas {
-                    id: sleepChart
-                    x: Theme.horizontalPageMargin
-                    width: column.width - 2 * Theme.horizontalPageMargin
-                    height: Theme.itemSizeLarge
-                    visible: Game.sleepHistory().length >= 2
-
-                    onPaint: {
-                        var ctx = getContext("2d")
-                        ctx.clearRect(0, 0, width, height)
-                        var pts = Game.sleepHistory()
-                        if (pts.length < 2) return
-                        var minT = pts[0].t, maxT = pts[pts.length - 1].t
-                        if (maxT - minT <= 0) return
-                        ctx.beginPath()
-                        for (var i = 0; i < pts.length; i++) {
-                            var px = (pts[i].t - minT) / (maxT - minT) * width
-                            var py = height - 2 - (pts[i].v - 0.3) / 0.7 * (height - 4)
-                            if (i === 0) ctx.moveTo(px, py)
-                            else ctx.lineTo(px, py)
-                        }
-                        ctx.strokeStyle = Theme.secondaryHighlightColor
-                        ctx.lineWidth = 2
-                        ctx.stroke()
-                    }
-
-                    Connections {
-                        target: Game
-                        onStateChanged: sleepChart.requestPaint()
-                    }
-                }
-
-                Label {
-                    visible: Game.decisionsVisible
-                    x: Theme.horizontalPageMargin
-                    text: qsTr("Decisions")
-                    font.pixelSize: Theme.fontSizeExtraSmall
-                    color: Theme.secondaryColor
-                }
-
-                Canvas {
-                    id: decisionsChart
-                    x: Theme.horizontalPageMargin
-                    width: column.width - 2 * Theme.horizontalPageMargin
-                    height: Theme.itemSizeLarge
-                    visible: Game.decisionsVisible
-
-                    onPaint: {
-                        var ctx = getContext("2d")
-                        ctx.clearRect(0, 0, width, height)
-                        var pts = Game.decisionsHistory()
-                        if (pts.length < 2) return
-                        var minT = pts[0].t, maxT = pts[pts.length - 1].t
-                        var maxV = Math.max(pts[pts.length - 1].b, pts[pts.length - 1].s, 1)
-                        if (maxT - minT <= 0) return
-                        function drawLine(fieldB, color) {
-                            ctx.beginPath()
-                            for (var i = 0; i < pts.length; i++) {
-                                var px = (pts[i].t - minT) / (maxT - minT) * width
-                                var v = fieldB ? pts[i].b : pts[i].s
-                                var py = height - 2 - (v / maxV) * (height - 4)
-                                if (i === 0) ctx.moveTo(px, py)
-                                else ctx.lineTo(px, py)
-                            }
-                            ctx.strokeStyle = color
-                            ctx.lineWidth = 2
-                            ctx.stroke()
-                        }
-                        drawLine(true, "#C0603A")
-                        drawLine(false, Theme.secondaryHighlightColor)
-                    }
-
-                    Connections {
-                        target: Game
-                        onStateChanged: decisionsChart.requestPaint()
-                    }
-                }
-            }
-
-            Item { width: 1; height: Theme.paddingLarge }
 
             // Refound: the plain prestige loop.
             BackgroundItem {
