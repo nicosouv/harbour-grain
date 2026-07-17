@@ -12,10 +12,21 @@ namespace {
 // Income sources for attribution in the breakdown buckets.
 const int kSrcTap = -1;
 
+void addAge(GameState& s, int years)
+{
+    s.age += years;
+    if (s.age > Balance::kMaxAge)
+        s.age = Balance::kMaxAge;
+}
+
 // Add `base` income from `src`, applying the foundation coefficient on top. The coefficient's
-// share always lands in the foundation bucket, whatever the source.
+// share always lands in the foundation bucket, whatever the source. Past the current funding
+// tier's ceiling the whole flow shrinks (plateau, never a halt). Wealth marks cost years.
 void addIncome(GameState& s, double base, int src)
 {
+    const double ceiling = tierCeiling(s);
+    if (ceiling > 0.0 && s.epochRecette >= ceiling)
+        base *= Balance::kSoftCapScale;
     const double f = s.opened ? Balance::kFoundation : 0.0;
     const double total = base * (1.0 + f);
     s.recette += total;
@@ -26,6 +37,10 @@ void addIncome(GameState& s, double base, int src)
         s.earnedTap += base;
     else if (src >= 0 && src < Balance::GenCount)
         s.earnedGens[src] += base;
+    while (s.wealthMarks < 6 && s.epochRecette >= Balance::kWealthMark[s.wealthMarks]) {
+        s.wealthMarks += 1;
+        addAge(s, Balance::kAgeWealth);
+    }
 }
 
 // Grant soin and settle new creatures for every threshold crossed (seeded, deterministic).
@@ -48,6 +63,41 @@ void settleCycles(GameState& s, qint64 at)
         if (s.gens[g].runningUntilMs > 0 && at >= s.gens[g].runningUntilMs) {
             addIncome(s, cyclePayout(s, g), g);
             s.gens[g].runningUntilMs = 0;
+        }
+    }
+}
+
+// Wear and tear: at most one attraction down at a time; odds grow as focus frays and age climbs.
+void rollIncident(GameState& s, qint64 ms, qint64 at, quint64 salt)
+{
+    int owned = 0;
+    for (int g = 0; g < Balance::GenCount; ++g) {
+        if (s.gens[g].broken)
+            return;
+        if (s.gens[g].count > 0)
+            ++owned;
+    }
+    if (owned == 0)
+        return;
+    const double hours = ms / 3600000.0;
+    double p = (Balance::kIncidentPerHourBase
+                + Balance::kIncidentPerHourFocus * (1.0 - founderFocus(s))
+                + (s.age > Balance::kIncidentOldAge ? Balance::kIncidentPerHourOld : 0.0))
+             * hours;
+    if (p > 0.9)
+        p = 0.9;
+    const double roll =
+        (Rng::mix(salt, static_cast<quint64>(at)) % Q_UINT64_C(100000)) / 100000.0;
+    if (roll >= p)
+        return;
+    int pick = static_cast<int>(
+        Rng::mix(salt, static_cast<quint64>(at) ^ Q_UINT64_C(0x9E37)) % static_cast<quint64>(owned));
+    for (int g = 0; g < Balance::GenCount; ++g) {
+        if (s.gens[g].count > 0 && pick-- == 0) {
+            s.gens[g].broken = true;
+            s.gens[g].runningUntilMs = 0;   // a cycle in flight is lost
+            s.incidents += 1;
+            return;
         }
     }
 }
@@ -140,13 +190,56 @@ double founderFocus(const GameState& s)
     return v < Balance::kFocusFloor ? Balance::kFocusFloor : (v > 1.0 ? 1.0 : v);
 }
 
-int founderAge(const GameState& s, qint64 nowMs)
+int founderAge(const GameState& s)
 {
-    if (!s.arrived || s.arrivedAtMs <= 0 || nowMs <= s.arrivedAtMs)
-        return Balance::kStartAge;
-    const int years = static_cast<int>((nowMs - s.arrivedAtMs) / Balance::kAgeYearMs);
-    const int age = Balance::kStartAge + years;
-    return age > Balance::kMaxAge ? Balance::kMaxAge : age;
+    return s.age;
+}
+
+bool herGone(const GameState& s)
+{
+    return s.epoch >= 1;
+}
+
+double sleepFactor(const GameState& s)
+{
+    const double t = (founderSleep(s) - Balance::kSleepFloor) / (1.0 - Balance::kSleepFloor);
+    return Balance::kSleepWorkFloor + (1.0 - Balance::kSleepWorkFloor) * t;
+}
+
+double focusFactor(const GameState& s)
+{
+    const double t = (founderFocus(s) - Balance::kFocusFloor) / (1.0 - Balance::kFocusFloor);
+    return Balance::kFocusFlowFloor + (1.0 - Balance::kFocusFlowFloor) * t;
+}
+
+double repairCost(const GameState& s, int g)
+{
+    const double c = Balance::kRepairCostSecs * genRate(s, g);
+    return c > Balance::kSitCostMin ? c : Balance::kSitCostMin;
+}
+
+double tierCeiling(const GameState& s)
+{
+    if (s.raised >= Balance::kTierCount)
+        return -1.0;
+    return Balance::kCeilingFactor * Balance::kTierThreshold[s.raised];
+}
+
+bool raiseReady(const GameState& s, qint64 nowMs)
+{
+    if (s.raised >= Balance::kTierCount || s.age >= Balance::kMaxAge)
+        return false;
+    if (s.epochRecette < Balance::kTierThreshold[s.raised])
+        return false;
+    return raiseCooldownLeftMs(s, nowMs) == 0;
+}
+
+qint64 raiseCooldownLeftMs(const GameState& s, qint64 nowMs)
+{
+    if (s.raised >= Balance::kTierCount || s.lastRaiseMs == 0)
+        return 0;
+    const qint64 readyAt = s.lastRaiseMs + Balance::kTierCooldownMs[s.raised];
+    return nowMs >= readyAt ? 0 : readyAt - nowMs;
 }
 
 double genRate(const GameState& s, int g)
@@ -157,7 +250,9 @@ double genRate(const GameState& s, int g)
 
 double cyclePayout(const GameState& s, int g)
 {
-    return genRate(s, g) * (Balance::kGens[g].cycleMs / 1000.0);
+    if (s.gens[g].broken)
+        return 0.0;
+    return genRate(s, g) * (Balance::kGens[g].cycleMs / 1000.0) * sleepFactor(s);
 }
 
 double tapValue(const GameState& s)
@@ -166,17 +261,17 @@ double tapValue(const GameState& s)
                         * s.bonusMult * creatureMult(s) * echoMult(s);
     // Keep tapping meaningful once managers carry the park: a tap tracks the ticker.
     const double share = Balance::kTapRpsShare * baseRps(s);
-    return manual > share ? manual : share;
+    return (manual > share ? manual : share) * sleepFactor(s);
 }
 
 double baseRps(const GameState& s)
 {
     double sum = 0.0;
     for (int g = 0; g < Balance::GenCount; ++g) {
-        if (s.gens[g].manager)
+        if (s.gens[g].manager && !s.gens[g].broken)
             sum += genRate(s, g);
     }
-    return sum;
+    return sum * focusFactor(s);
 }
 
 double totalRps(const GameState& s)
@@ -188,8 +283,13 @@ double totalRps(const GameState& s)
 double soinPerSec(const GameState& s)
 {
     double sum = Balance::kSoinBase;
-    for (int g = 0; g < Balance::GenCount; ++g)
-        sum += s.gens[g].count * Balance::kGens[g].soinRate;
+    for (int g = 0; g < Balance::GenCount; ++g) {
+        if (!s.gens[g].broken)
+            sum += s.gens[g].count * Balance::kGens[g].soinRate;
+    }
+    // She was the one at the aviary. The trickle barely survives her.
+    if (herGone(s))
+        sum *= Balance::kAbsenceSoinScale;
     return sum;
 }
 
@@ -206,7 +306,7 @@ double spawnThreshold(int index)
 
 qint64 momentIntervalMs(const GameState& s, quint64 salt)
 {
-    int eff = s.buried - s.sat;
+    int eff = s.buried - s.sat - s.eased;
     if (eff < 0)
         eff = 0;
     // The very first moment lands within the opening session; later ones are episodic.
@@ -277,8 +377,32 @@ void applyEvent(GameState& s, const Event& e, quint64 salt)
     } else if (e.kind == QLatin1String("run")) {
         const int g = p.value(QLatin1String("g")).toInt();
         if (g >= 0 && g < Balance::GenCount && s.gens[g].count > 0 && !s.gens[g].manager
-            && s.gens[g].runningUntilMs == 0) {
+            && !s.gens[g].broken && s.gens[g].runningUntilMs == 0) {
             s.gens[g].runningUntilMs = at + Balance::kGens[g].cycleMs;
+        }
+    } else if (e.kind == QLatin1String("repair")) {
+        const int g = p.value(QLatin1String("g")).toInt();
+        if (g >= 0 && g < Balance::GenCount && s.gens[g].broken
+            && s.recette >= repairCost(s, g)) {
+            s.recette -= repairCost(s, g);
+            s.gens[g].broken = false;
+        }
+    } else if (e.kind == QLatin1String("raise")) {
+        const int i = p.value(QLatin1String("i")).toInt(-1);
+        const bool fastChoice = p.value(QLatin1String("fast")).toBool();
+        if (i == s.raised && i >= 0 && i < Balance::kTierCount
+            && s.epochRecette >= Balance::kTierThreshold[i]
+            && (s.lastRaiseMs == 0 || at - s.lastRaiseMs >= Balance::kTierCooldownMs[i])) {
+            s.raised += 1;
+            s.lastRaiseMs = at;
+            addAge(s, Balance::kAgeRaise);
+            if (fastChoice) {
+                s.raisedFast += 1;
+            } else {
+                s.raisedSlow += 1;
+                s.eased += 1;
+                addSoin(s, Balance::kRaiseSlowSoin * (i + 1), salt);
+            }
         }
     } else if (e.kind == QLatin1String("open")) {
         // Available once per epoch: every refounded park gets its own inauguration.
@@ -286,6 +410,7 @@ void applyEvent(GameState& s, const Event& e, quint64 salt)
             s.recette -= Balance::kOpeningCost;
             s.opened = true;
             s.openedAtMs = at;
+            addAge(s, Balance::kAgeOpen);
             // The inauguration bonus itself belongs to the foundation bucket.
             s.recette += Balance::kOpeningInstant;
             s.epochRecette += Balance::kOpeningInstant;
@@ -299,11 +424,13 @@ void applyEvent(GameState& s, const Event& e, quint64 salt)
         if (ms > Balance::kOfflineCapMs)
             ms = Balance::kOfflineCapMs;
         const double secs = ms / 1000.0;
+        const double flowFactor = focusFactor(s);
         for (int g = 0; g < Balance::GenCount; ++g) {
-            if (s.gens[g].manager)
-                addIncome(s, genRate(s, g) * secs, g);
+            if (s.gens[g].manager && !s.gens[g].broken)
+                addIncome(s, genRate(s, g) * flowFactor * secs, g);
         }
         addSoin(s, soinPerSec(s) * secs, salt);
+        rollIncident(s, ms, at, salt);
     } else if (e.kind == QLatin1String("care")) {
         const QString k = p.value(QLatin1String("k")).toString();
         if (k == QLatin1String("feed")) {
@@ -320,12 +447,16 @@ void applyEvent(GameState& s, const Event& e, quint64 salt)
     } else if (e.kind == QLatin1String("bury")) {
         s.buried += 1;
         s.lastMomentMs = at;
+        if ((s.buried + s.sat) % Balance::kAgeMomentsPer == 0)
+            addAge(s, 1);
     } else if (e.kind == QLatin1String("sit")) {
         const double cost = sitCost(s);
         s.recette = s.recette > cost ? s.recette - cost : 0.0;
         s.sat += 1;
         s.lastMomentMs = at;
         addSoin(s, Balance::kCareLinger, salt);
+        if ((s.buried + s.sat) % Balance::kAgeMomentsPer == 0)
+            addAge(s, 1);
     } else if (e.kind == QLatin1String("confess")) {
         const int gained = static_cast<int>(
             std::floor(std::sqrt(s.epochRecette / Balance::kPrestigePointDiv)));
@@ -337,9 +468,13 @@ void applyEvent(GameState& s, const Event& e, quint64 salt)
         s.epochRecette = 0.0;
         s.opened = false;
         s.openedAtMs = 0;
+        s.wealthMarks = 0;
+        s.raised = 0;
+        s.lastRaiseMs = 0;
+        addAge(s, Balance::kAgeConfess);
         for (int g = 0; g < Balance::GenCount; ++g)
             s.gens[g] = GenState();
-        // Soin, creatures and the breakdown history persist: the log is never undone.
+        // Soin, creatures, the years and the breakdown history persist: nothing is undone.
     }
 
     touch(s, at);

@@ -39,6 +39,11 @@ GrainController::GrainController(QObject* parent)
         if (events.at(i).kind == QLatin1String("bury")
             || events.at(i).kind == QLatin1String("sit")) {
             m_founderHistory.append(qMakePair(events.at(i).tsMs, founderSleep(m_state)));
+            QVariantMap d;
+            d.insert(QStringLiteral("t"), static_cast<double>(events.at(i).tsMs));
+            d.insert(QStringLiteral("b"), m_state.buried);
+            d.insert(QStringLiteral("s"), m_state.sat);
+            m_decisionHistory.append(d);
         }
     }
 
@@ -95,13 +100,21 @@ void GrainController::recordHistory(qint64 at)
         m_historyEpoch = m_state.epoch;
     }
     m_history.append(qMakePair(at, m_state.epochRecette));
-    // Bound memory: decimate when the series grows too long (keeps the shape).
+    m_soinHistory.append(qMakePair(at, m_state.soinEarned));
+    // Bound memory: decimate when the series grow too long (keeps the shape).
     if (m_history.size() > 4000) {
         QVector<QPair<qint64, double> > slim;
         slim.reserve(m_history.size() / 2 + 1);
         for (int i = 0; i < m_history.size(); i += 2)
             slim.append(m_history.at(i));
         m_history = slim;
+    }
+    if (m_soinHistory.size() > 4000) {
+        QVector<QPair<qint64, double> > slim;
+        slim.reserve(m_soinHistory.size() / 2 + 1);
+        for (int i = 0; i < m_soinHistory.size(); i += 2)
+            slim.append(m_soinHistory.at(i));
+        m_soinHistory = slim;
     }
 }
 
@@ -151,6 +164,8 @@ QVariantList GrainController::generators() const
         row.insert(QStringLiteral("manager"), m_state.gens[g].manager);
         row.insert(QStringLiteral("managerCost"), managerCost(g));
         row.insert(QStringLiteral("payout"), cyclePayout(m_state, g));
+        row.insert(QStringLiteral("broken"), m_state.gens[g].broken);
+        row.insert(QStringLiteral("repairCost"), repairCost(m_state, g));
         row.insert(QStringLiteral("cycleMs"), static_cast<double>(Balance::kGens[g].cycleMs));
         row.insert(QStringLiteral("runningUntil"),
                    static_cast<double>(m_state.gens[g].runningUntilMs));
@@ -225,7 +240,78 @@ double GrainController::focusPercent() const { return founderFocus(m_state) * 10
 
 int GrainController::founderAgeQ() const
 {
-    return founderAge(m_state, m_clock.nowMs());
+    return founderAge(m_state);
+}
+
+bool GrainController::herGoneQ() const { return herGone(m_state); }
+int GrainController::raiseTier() const { return m_state.raised; }
+
+bool GrainController::raiseReadyQ() const
+{
+    return raiseReady(m_state, m_clock.nowMs());
+}
+
+bool GrainController::raisePending() const
+{
+    // The bar is met but the cooldown still runs — worth telling the player when to come back.
+    return m_state.raised < Balance::kTierCount
+        && m_state.age < Balance::kMaxAge
+        && m_state.epochRecette >= Balance::kTierThreshold[m_state.raised]
+        && raiseCooldownLeftMs(m_state, m_clock.nowMs()) > 0;
+}
+
+double GrainController::raiseThresholdQ() const
+{
+    if (m_state.raised >= Balance::kTierCount)
+        return 0.0;
+    return Balance::kTierThreshold[m_state.raised];
+}
+
+double GrainController::raiseCooldownLeftQ() const
+{
+    return static_cast<double>(raiseCooldownLeftMs(m_state, m_clock.nowMs()));
+}
+
+bool GrainController::plateaued() const
+{
+    const double ceiling = tierCeiling(m_state);
+    return ceiling > 0.0 && m_state.epochRecette >= ceiling;
+}
+
+bool GrainController::decisionsVisible() const
+{
+    return m_state.buried + m_state.sat >= 15;
+}
+
+void GrainController::closeRaise(bool fastChoice)
+{
+    flushNow();
+    if (!raiseReady(m_state, m_clock.nowMs()))
+        return;
+    QJsonObject p;
+    p.insert(QLatin1String("i"), m_state.raised);
+    p.insert(QLatin1String("fast"), fastChoice);
+    p.insert(QLatin1String("at"), static_cast<double>(m_clock.nowMs()));
+    appendAndApply(QLatin1String("raise"),
+                   QString::fromUtf8(QJsonDocument(p).toJson(QJsonDocument::Compact)));
+    emit stateChanged();
+    emit liveChanged();
+}
+
+void GrainController::repair(int g)
+{
+    if (g < 0 || g >= Balance::GenCount)
+        return;
+    flushNow();
+    if (!m_state.gens[g].broken || m_state.recette < repairCost(m_state, g))
+        return;
+    QJsonObject p;
+    p.insert(QLatin1String("g"), g);
+    p.insert(QLatin1String("at"), static_cast<double>(m_clock.nowMs()));
+    appendAndApply(QLatin1String("repair"),
+                   QString::fromUtf8(QJsonDocument(p).toJson(QJsonDocument::Compact)));
+    emit stateChanged();
+    emit liveChanged();
 }
 
 bool GrainController::beatSeen(const QString& key) const
@@ -257,14 +343,24 @@ QString GrainController::pendingNarration() const
     if (m_state.opened && !beatSeen(QStringLiteral("open%1").arg(m_state.epoch)))
         return m_state.epoch == 0 ? QStringLiteral("open") : QStringLiteral("openAgain");
 
+    // Each closed funding round tells its bit of the story.
+    for (int i = 0; i < m_state.raised && i < Balance::kTierCount; ++i) {
+        if (!beatSeen(QStringLiteral("raise%1").arg(i)))
+            return QStringLiteral("raise%1").arg(i);
+    }
+
+    if (m_state.incidents >= 1 && !beatSeen(QStringLiteral("panne1")))
+        return QStringLiteral("panne1");
+
     // The cover choices themselves, first times and repetitions.
     if (m_state.buried >= 1 && !beatSeen(QStringLiteral("bury1")))
         return QStringLiteral("bury1");
     if (m_state.sat >= 1 && !beatSeen(QStringLiteral("sit1")))
         return QStringLiteral("sit1");
+    const bool gone = herGone(m_state);
     if (m_state.buried >= 5 && !beatSeen(QStringLiteral("bury5")))
         return QStringLiteral("bury5");
-    if (m_state.sat >= 5 && !beatSeen(QStringLiteral("sit5")))
+    if (!gone && m_state.sat >= 5 && !beatSeen(QStringLiteral("sit5")))
         return QStringLiteral("sit5");
 
     // Decade birthdays, oldest missed first.
@@ -283,6 +379,8 @@ QString GrainController::pendingNarration() const
     const int resolved = momentsResolved(m_state) < Balance::kEchoCount
         ? momentsResolved(m_state) : Balance::kEchoCount;
     for (int n = 1; n <= resolved; ++n) {
+        if (gone && n == 4)
+            continue;   // her speech: only while she is here
         if (!beatSeen(QStringLiteral("echo%1").arg(n)))
             return QStringLiteral("echo%1").arg(n);
     }
@@ -303,6 +401,8 @@ QString GrainController::pendingNarration() const
         "first_milestone", "milestone50", "milestone100", "milestone200", "milestone400"
     };
     for (int m = 0; m < Balance::kMilestoneCount; ++m) {
+        if (gone && m == 3)
+            continue;   // "she stopped counting with me" needs her here
         for (int g = 0; g < Balance::GenCount; ++g) {
             if (m_state.gens[g].count >= Balance::kMilestones[m]
                 && !beatSeen(QLatin1String(kMilestoneKey[m])))
@@ -312,6 +412,8 @@ QString GrainController::pendingNarration() const
 
     // Progression firsts, and each hand-over to a manager.
     for (int g = 0; g < Balance::GenCount; ++g) {
+        if (gone && (g == Balance::Aviary || g == Balance::Carousel))
+            continue;   // those firsts speak of her
         if (m_state.gens[g].count > 0) {
             const QString key = QStringLiteral("first_") + QLatin1String(Balance::kGens[g].id);
             if (!beatSeen(key))
@@ -322,6 +424,8 @@ QString GrainController::pendingNarration() const
     for (int g = 0; g < Balance::GenCount; ++g) {
         if (m_state.gens[g].manager) {
             ++managers;
+            if (gone && g == Balance::Aviary)
+                continue;
             const QString key = QStringLiteral("manager_") + QLatin1String(Balance::kGens[g].id);
             if (!beatSeen(key))
                 return key;
@@ -336,18 +440,41 @@ QString GrainController::pendingNarration() const
         return QStringLiteral("creature1");
     if (m_state.creatures.size() >= 5 && !beatSeen(QStringLiteral("creature5")))
         return QStringLiteral("creature5");
-    if (m_state.creatures.size() >= 12 && !beatSeen(QStringLiteral("creature12")))
+    if (!gone && m_state.creatures.size() >= 12 && !beatSeen(QStringLiteral("creature12")))
         return QStringLiteral("creature12");
+
+    // The late confession's epilogue, then the absence, then the ambient hum — one per visit.
+    if (m_staticArmed && gone) {
+        if (m_state.age >= 70) {
+            for (int i = 0; i < 6; ++i) {
+                if (!beatSeen(QStringLiteral("epi%1").arg(i)))
+                    return QStringLiteral("epi%1").arg(i);
+            }
+        }
+        for (int i = 0; i < 4; ++i) {
+            if (!beatSeen(QStringLiteral("abs%1").arg(i)))
+                return QStringLiteral("abs%1").arg(i);
+        }
+    }
 
     // Ambient interference: repeatable, once per activation, quota rising with net buries.
     const int pressure = m_state.buried - m_state.sat;
-    if (m_staticArmed && pressure >= 3) {
+    if (m_staticArmed && (pressure >= 3 || gone)) {
         const qint64 day = now / Q_INT64_C(86400000);
-        const int quotaToday = pressure - 2 < 3 ? pressure - 2 : 3;
+        int quotaToday = pressure - 2 < 3 ? pressure - 2 : 3;
+        if (gone && quotaToday < 1)
+            quotaToday = 1;
+        if (m_state.age >= 70)
+            quotaToday = 1;   // the last decade goes quiet
         const qint64 markedDay = m_settings.value(QStringLiteral("narr/sday"), 0).toLongLong();
         const int shown = markedDay == day
             ? m_settings.value(QStringLiteral("narr/scount"), 0).toInt() : 0;
         if (shown < quotaToday) {
+            if (gone) {
+                const int variant = static_cast<int>(
+                    Rng::mix(m_salt, static_cast<quint64>(day * 7 + shown)) % 8);
+                return QStringLiteral("astatic%1").arg(variant);
+            }
             // Deep pressure pulls from the darker half of the pool.
             const int base = pressure >= 6 ? 6 : 0;
             const int variant = base + static_cast<int>(
@@ -363,7 +490,11 @@ void GrainController::ackNarration()
     const QString pending = pendingNarration();
     if (pending.isEmpty())
         return;
-    if (pending.startsWith(QLatin1String("static"))) {
+    if (pending.startsWith(QLatin1String("epi")) || pending.startsWith(QLatin1String("abs"))) {
+        m_settings.setValue(QStringLiteral("narr/b_") + pending, true);
+        m_staticArmed = false;
+    } else if (pending.startsWith(QLatin1String("static"))
+               || pending.startsWith(QLatin1String("astatic"))) {
         const qint64 day = m_clock.nowMs() / Q_INT64_C(86400000);
         const qint64 markedDay = m_settings.value(QStringLiteral("narr/sday"), 0).toLongLong();
         const int shown = markedDay == day
@@ -391,14 +522,7 @@ void GrainController::appActivated()
 
 int GrainController::parkYear() const
 {
-    if (!m_state.arrived || m_state.arrivedAtMs <= 0)
-        return 0;
-    const qint64 elapsed = m_clock.nowMs() - m_state.arrivedAtMs;
-    if (elapsed <= 0)
-        return 0;
-    const int years = static_cast<int>(elapsed / Balance::kAgeYearMs);
-    return years > Balance::kMaxAge - Balance::kStartAge
-        ? Balance::kMaxAge - Balance::kStartAge : years;
+    return m_state.age - Balance::kStartAge;
 }
 
 bool GrainController::donutVisible() const
@@ -481,8 +605,14 @@ void GrainController::appendAndApply(const QString& kind, const QString& payload
     e.payload = payload;
     applyEvent(m_state, e, m_salt);
     recordHistory(now);
-    if (kind == QLatin1String("bury") || kind == QLatin1String("sit"))
+    if (kind == QLatin1String("bury") || kind == QLatin1String("sit")) {
         m_founderHistory.append(qMakePair(now, founderSleep(m_state)));
+        QVariantMap d;
+        d.insert(QStringLiteral("t"), static_cast<double>(now));
+        d.insert(QStringLiteral("b"), m_state.buried);
+        d.insert(QStringLiteral("s"), m_state.sat);
+        m_decisionHistory.append(d);
+    }
 }
 
 void GrainController::appendSimple(const QString& kind, qint64 at)
@@ -717,6 +847,27 @@ QVariantList GrainController::sleepHistory() const
     return out;
 }
 
+QVariantList GrainController::soinHistory() const
+{
+    QVariantList out;
+    const int n = m_soinHistory.size();
+    if (n == 0)
+        return out;
+    const int step = n > 120 ? (n + 119) / 120 : 1;
+    for (int i = 0; i < n; i += step) {
+        QVariantMap pt;
+        pt.insert(QStringLiteral("t"), static_cast<double>(m_soinHistory.at(i).first));
+        pt.insert(QStringLiteral("v"), m_soinHistory.at(i).second);
+        out.append(pt);
+    }
+    return out;
+}
+
+QVariantList GrainController::decisionsHistory() const
+{
+    return m_decisionHistory;
+}
+
 QString GrainController::fmt(double value) const
 {
     static const char* const kSuffix[] = { "", " k", " M", " B", " T", " P", " E" };
@@ -741,6 +892,8 @@ void GrainController::clearData()
     m_history.clear();
     m_historyEpoch = 0;
     m_founderHistory.clear();
+    m_soinHistory.clear();
+    m_decisionHistory.clear();
     // A new life: forget the shown narrations along with everything else.
     m_settings.remove(QStringLiteral("narr"));
     m_lastFlushMs = m_clock.nowMs();

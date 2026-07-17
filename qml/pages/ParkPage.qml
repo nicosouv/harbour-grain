@@ -16,6 +16,16 @@ Page {
         if (i === 7) return qsTr("Rehearse the park's story")
         if (i === 8) return qsTr("Put the old photos away")
         if (i === 9) return qsTr("Don't think about it")
+        if (i === 10) return qsTr("Double the maintenance crew")
+        if (i === 11) return qsTr("Light the paths at night")
+        if (i === 12) return qsTr("A bigger office, farther from the gate")
+        if (i === 13) return qsTr("Silence the gate's creak")
+        if (i === 14) return qsTr("Earbuds for the commute")
+        if (i === 15) return qsTr("Lunch at the desk")
+        if (i === 16) return qsTr("Replace the bench by the pond")
+        if (i === 17) return qsTr("Scan the archives, discard the originals")
+        if (i === 18) return qsTr("Stop celebrating anniversaries")
+        if (i === 19) return qsTr("Sell the house. The office will do.")
         return ""
     }
 
@@ -26,7 +36,61 @@ Page {
         if (id === "aviary") return qsTr("The aviary")
         if (id === "carousel") return qsTr("The carousel")
         if (id === "pond") return qsTr("The pond")
+        if (id === "wheel") return qsTr("The big wheel")
+        if (id === "greenhouse") return qsTr("The greenhouse")
+        if (id === "museum") return qsTr("The park museum")
         return id
+    }
+
+    function tierSituation(i) {
+        if (i === 0) return qsTr("The banker wants to see the first summer's books.")
+        if (i === 1) return qsTr("The insurer asks for the plot's history.")
+        if (i === 2) return qsTr("The chamber of commerce wants the park's story for its brochure.")
+        if (i === 3) return qsTr("The investors ask who signed the original permit.")
+        if (i === 4) return qsTr("Close the round this week, or wait for the audit?")
+        if (i === 5) return qsTr("The foreign fund wants to tour the park, no guide.")
+        if (i === 6) return qsTr("A journalist is writing a profile of the founder.")
+        if (i === 7) return qsTr("The inspector wants to see the permit again.")
+        if (i === 8) return qsTr("The neighbours will sell if the park's story stays intact.")
+        if (i === 9) return qsTr("Create a foundation in the park's name.")
+        if (i === 10) return qsTr("The heritage listing requires a file on the origins.")
+        return qsTr("A group offers to buy. They would keep everything: the name, the story.")
+    }
+
+    function tierFast(i) {
+        if (i === 0) return qsTr("Show the prepared binder")
+        if (i === 1) return qsTr("Send the usual file")
+        if (i === 2) return qsTr("Proofread the text yourself")
+        if (i === 3) return qsTr("Show the permit")
+        if (i === 4) return qsTr("Close this week")
+        if (i === 5) return qsTr("Mark out the route")
+        if (i === 6) return qsTr("Rehearse the park's story")
+        if (i === 7) return qsTr("Show the other one")
+        if (i === 8) return qsTr("Promise")
+        if (i === 9) return qsTr("In the park's name")
+        if (i === 10) return qsTr("Have the file written")
+        return qsTr("Refuse. It's mine.")
+    }
+
+    function tierSlow(i) {
+        if (i === 0) return qsTr("Show all the binders")
+        if (i === 1) return qsTr("Let their expert visit")
+        if (i === 2) return qsTr("Let them interview the staff")
+        if (i === 3) return qsTr("Answer: me.")
+        if (i === 4) return qsTr("Wait for the audit")
+        if (i === 5) return qsTr("Hand over the keys")
+        if (i === 6) return qsTr("Talk about her, mostly")
+        if (i === 7) return qsTr("Show the original")
+        if (i === 8) return qsTr("Buy without promising, dearer")
+        if (i === 9) return qsTr("In her name")
+        if (i === 10) return qsTr("Write it yourself, all of it")
+        return qsTr("Refuse. It's ours.")
+    }
+
+    function cooldownText(ms) {
+        var h = Math.floor(ms / 3600000)
+        if (h >= 1) return h + " h"
+        return Math.max(1, Math.ceil(ms / 60000)) + " min"
     }
 
     function sourceName(id) {
@@ -43,6 +107,9 @@ Page {
         if (id === "aviary") return "#5D7D8A"
         if (id === "carousel") return "#A03A4A"
         if (id === "pond") return "#3A6A8A"
+        if (id === "wheel") return "#7A6FA0"
+        if (id === "greenhouse") return "#6FA07A"
+        if (id === "museum") return "#8F8A80"
         if (id === "opening") return "#E0B23A"
         return "#777777"
     }
@@ -87,6 +154,7 @@ Page {
             Label {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "+" + Game.fmt(Game.recettePerSec) + "/s"
+                      + (Game.plateaued ? "  ·  " + qsTr("at capacity") : "")
                 font.pixelSize: Theme.fontSizeSmall
                 color: Theme.secondaryHighlightColor
             }
@@ -241,6 +309,55 @@ Page {
                 }
             }
 
+            // Funding: the next order of magnitude sits behind a question and real time.
+            SectionHeader {
+                visible: Game.raiseReady || Game.raisePending
+                text: qsTr("Funding")
+            }
+
+            Column {
+                visible: Game.raiseReady || Game.raisePending
+                width: parent.width
+                spacing: Theme.paddingMedium
+
+                Label {
+                    x: Theme.horizontalPageMargin
+                    width: parent.width - 2 * Theme.horizontalPageMargin
+                    wrapMode: Text.Wrap
+                    text: tierSituation(Game.raiseTier)
+                    color: Theme.highlightColor
+                }
+
+                Label {
+                    visible: Game.raisePending
+                    x: Theme.horizontalPageMargin
+                    text: qsTr("Next round in %1").arg(cooldownText(Game.raiseCooldownLeft))
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.secondaryColor
+                }
+
+                Column {
+                    visible: Game.raiseReady
+                    width: parent.width
+                    spacing: Theme.paddingSmall
+
+                    Button {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        preferredWidth: Theme.buttonWidthLarge
+                        text: tierFast(Game.raiseTier)
+                        onClicked: Game.closeRaise(true)
+                    }
+                    Button {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        preferredWidth: Theme.buttonWidthLarge
+                        text: tierSlow(Game.raiseTier)
+                        onClicked: Game.closeRaise(false)
+                    }
+                }
+
+                Item { width: 1; height: Theme.paddingSmall }
+            }
+
             // Attractions header with the buy-amount toggle.
             Item {
                 width: parent.width
@@ -274,13 +391,16 @@ Page {
                     height: Theme.itemSizeMedium
                     opacity: modelData.locked ? 0.4 : 1.0
 
-                    // Tap the row to run a manual cycle (managers make it continuous).
+    	            // Tap the row to run a manual cycle (managers make it continuous) —
+                    // or to repair it when it's down.
                     MouseArea {
                         anchors.fill: parent
                         anchors.rightMargin: parent.width * 0.35
-                        enabled: !modelData.locked && !modelData.manager && modelData.count > 0
+                        enabled: !modelData.locked && modelData.count > 0
                         onClicked: {
-                            if (modelData.runningUntil <= 0)
+                            if (modelData.broken)
+                                Game.repair(modelData.index)
+                            else if (!modelData.manager && modelData.runningUntil <= 0)
                                 Game.run(modelData.index)
                         }
                     }
@@ -299,6 +419,9 @@ Page {
                         Label {
                             text: {
                                 if (modelData.count <= 0) return ""
+                                if (modelData.broken)
+                                    return qsTr("out of order") + " · "
+                                         + Game.fmt(modelData.repairCost)
                                 var s
                                 if (modelData.manager)
                                     s = "+" + Game.fmt(modelData.rate) + "/s · " + qsTr("managed")
@@ -310,7 +433,7 @@ Page {
                                 return s
                             }
                             font.pixelSize: Theme.fontSizeExtraSmall
-                            color: Theme.secondaryColor
+                            color: modelData.broken ? "#C0603A" : Theme.secondaryColor
                         }
 
                         // Cycle progress.
@@ -515,6 +638,38 @@ Page {
                         font.pixelSize: Theme.fontSizeExtraSmall
                         color: Theme.secondaryColor
                     }
+
+                    Canvas {
+                        id: soinChart
+                        width: parent.width
+                        height: Theme.itemSizeSmall
+                        visible: Game.soinHistory().length >= 2
+
+                        onPaint: {
+                            var ctx = getContext("2d")
+                            ctx.clearRect(0, 0, width, height)
+                            var pts = Game.soinHistory()
+                            if (pts.length < 2) return
+                            var minT = pts[0].t, maxT = pts[pts.length - 1].t
+                            var maxV = pts[pts.length - 1].v
+                            if (maxT - minT <= 0 || maxV <= 0) return
+                            ctx.beginPath()
+                            for (var i = 0; i < pts.length; i++) {
+                                var px = (pts[i].t - minT) / (maxT - minT) * width
+                                var py = height - 2 - (pts[i].v / maxV) * (height - 4)
+                                if (i === 0) ctx.moveTo(px, py)
+                                else ctx.lineTo(px, py)
+                            }
+                            ctx.strokeStyle = "#7DA33F"
+                            ctx.lineWidth = 2
+                            ctx.stroke()
+                        }
+
+                        Connections {
+                            target: Game
+                            onStateChanged: soinChart.requestPaint()
+                        }
+                    }
                 }
             }
 
@@ -561,6 +716,52 @@ Page {
                     Connections {
                         target: Game
                         onStateChanged: sleepChart.requestPaint()
+                    }
+                }
+
+                Label {
+                    visible: Game.decisionsVisible
+                    x: Theme.horizontalPageMargin
+                    text: qsTr("Decisions")
+                    font.pixelSize: Theme.fontSizeExtraSmall
+                    color: Theme.secondaryColor
+                }
+
+                Canvas {
+                    id: decisionsChart
+                    x: Theme.horizontalPageMargin
+                    width: column.width - 2 * Theme.horizontalPageMargin
+                    height: Theme.itemSizeLarge
+                    visible: Game.decisionsVisible
+
+                    onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.clearRect(0, 0, width, height)
+                        var pts = Game.decisionsHistory()
+                        if (pts.length < 2) return
+                        var minT = pts[0].t, maxT = pts[pts.length - 1].t
+                        var maxV = Math.max(pts[pts.length - 1].b, pts[pts.length - 1].s, 1)
+                        if (maxT - minT <= 0) return
+                        function drawLine(fieldB, color) {
+                            ctx.beginPath()
+                            for (var i = 0; i < pts.length; i++) {
+                                var px = (pts[i].t - minT) / (maxT - minT) * width
+                                var v = fieldB ? pts[i].b : pts[i].s
+                                var py = height - 2 - (v / maxV) * (height - 4)
+                                if (i === 0) ctx.moveTo(px, py)
+                                else ctx.lineTo(px, py)
+                            }
+                            ctx.strokeStyle = color
+                            ctx.lineWidth = 2
+                            ctx.stroke()
+                        }
+                        drawLine(true, "#C0603A")
+                        drawLine(false, Theme.secondaryHighlightColor)
+                    }
+
+                    Connections {
+                        target: Game
+                        onStateChanged: decisionsChart.requestPaint()
                     }
                 }
             }

@@ -33,6 +33,59 @@
     <message><source>Put the old photos away</source><translation>Put the old photos away</translation></message>
     <message><source>Don't think about it</source><translation>Don't think about it</translation></message>
     <message><source>By hand</source><translation>By hand</translation></message>
+    <message><source>The big wheel</source><translation>The big wheel</translation></message>
+    <message><source>The greenhouse</source><translation>The greenhouse</translation></message>
+    <message><source>The park museum</source><translation>The park museum</translation></message>
+    <message><source>at capacity</source><translation>at capacity</translation></message>
+    <message><source>Funding</source><translation>Funding</translation></message>
+    <message><source>Next round in %1</source><translation>Next round in %1</translation></message>
+    <message><source>out of order</source><translation>out of order</translation></message>
+    <message><source>Decisions</source><translation>Decisions</translation></message>
+    <message><source>Double the maintenance crew</source><translation>Double the maintenance crew</translation></message>
+    <message><source>Light the paths at night</source><translation>Light the paths at night</translation></message>
+    <message><source>A bigger office, farther from the gate</source><translation>A bigger office, farther from the gate</translation></message>
+    <message><source>Silence the gate's creak</source><translation>Silence the gate's creak</translation></message>
+    <message><source>Earbuds for the commute</source><translation>Earbuds for the commute</translation></message>
+    <message><source>Lunch at the desk</source><translation>Lunch at the desk</translation></message>
+    <message><source>Replace the bench by the pond</source><translation>Replace the bench by the pond</translation></message>
+    <message><source>Scan the archives, discard the originals</source><translation>Scan the archives, discard the originals</translation></message>
+    <message><source>Stop celebrating anniversaries</source><translation>Stop celebrating anniversaries</translation></message>
+    <message><source>Sell the house. The office will do.</source><translation>Sell the house. The office will do.</translation></message>
+    <message><source>The banker wants to see the first summer's books.</source><translation>The banker wants to see the first summer's books.</translation></message>
+    <message><source>The insurer asks for the plot's history.</source><translation>The insurer asks for the plot's history.</translation></message>
+    <message><source>The chamber of commerce wants the park's story for its brochure.</source><translation>The chamber of commerce wants the park's story for its brochure.</translation></message>
+    <message><source>The investors ask who signed the original permit.</source><translation>The investors ask who signed the original permit.</translation></message>
+    <message><source>Close the round this week, or wait for the audit?</source><translation>Close the round this week, or wait for the audit?</translation></message>
+    <message><source>The foreign fund wants to tour the park, no guide.</source><translation>The foreign fund wants to tour the park, no guide.</translation></message>
+    <message><source>A journalist is writing a profile of the founder.</source><translation>A journalist is writing a profile of the founder.</translation></message>
+    <message><source>The inspector wants to see the permit again.</source><translation>The inspector wants to see the permit again.</translation></message>
+    <message><source>The neighbours will sell if the park's story stays intact.</source><translation>The neighbours will sell if the park's story stays intact.</translation></message>
+    <message><source>Create a foundation in the park's name.</source><translation>Create a foundation in the park's name.</translation></message>
+    <message><source>The heritage listing requires a file on the origins.</source><translation>The heritage listing requires a file on the origins.</translation></message>
+    <message><source>A group offers to buy. They would keep everything: the name, the story.</source><translation>A group offers to buy. They would keep everything: the name, the story.</translation></message>
+    <message><source>Show the prepared binder</source><translation>Show the prepared binder</translation></message>
+    <message><source>Send the usual file</source><translation>Send the usual file</translation></message>
+    <message><source>Proofread the text yourself</source><translation>Proofread the text yourself</translation></message>
+    <message><source>Show the permit</source><translation>Show the permit</translation></message>
+    <message><source>Close this week</source><translation>Close this week</translation></message>
+    <message><source>Mark out the route</source><translation>Mark out the route</translation></message>
+    <message><source>Show the other one</source><translation>Show the other one</translation></message>
+    <message><source>Promise</source><translation>Promise</translation></message>
+    <message><source>In the park's name</source><translation>In the park's name</translation></message>
+    <message><source>Have the file written</source><translation>Have the file written</translation></message>
+    <message><source>Refuse. It's mine.</source><translation>Refuse. It's mine.</translation></message>
+    <message><source>Show all the binders</source><translation>Show all the binders</translation></message>
+    <message><source>Let their expert visit</source><translation>Let their expert visit</translation></message>
+    <message><source>Let them interview the staff</source><translation>Let them interview the staff</translation></message>
+    <message><source>Answer: me.</source><translation>Answer: me.</translation></message>
+    <message><source>Wait for the audit</source><translation>Wait for the audit</translation></message>
+    <message><source>Hand over the keys</source><translation>Hand over the keys</translation></message>
+    <message><source>Talk about her, mostly</source><translation>Talk about her, mostly</translation></message>
+    <message><source>Show the original</source><translation>Show the original</translation></message>
+    <message><source>Buy without promising, dearer</source><translation>Buy without promising, dearer</translation></message>
+    <message><source>In her name</source><translation>In her name</translation></message>
+    <message><source>Write it yourself, all of it</source><translation>Write it yourself, all of it</translation></message>
+    <message><source>Refuse. It's ours.</source><translation>Refuse. It's ours.</translation></message>
     <message><source>Sources</source><translation>Sources</translation></message>
     <message><source>Park life</source><translation>Park life</translation></message>
     <message><source>animals</source><translation>animals</translation></message>
@@ -205,6 +258,77 @@
     <message><source>Three times.</source><translation>Three times.</translation></message>
     <message><source>Everyone.</source><translation>Everyone.</translation></message>
     <message><source>Exactly.</source><translation>Exactly.</translation></message>
+    <message><source>The wheel turns on its own. Like everything else.</source><translation>The wheel turns on its own. Like everything else.</translation></message>
+    <message><source>The greenhouse doesn't need me either.</source><translation>The greenhouse doesn't need me either.</translation></message>
+    <message><source>The museum guide tells it better than I do.</source><translation>The museum guide tells it better than I do.</translation></message>
+    <message><source>A big wheel. You can see the whole park from up there.</source><translation>A big wheel. You can see the whole park from up there.</translation></message>
+    <message><source>A greenhouse. She keeps the cuttings.</source><translation>A greenhouse. She keeps the cuttings.</translation></message>
+    <message><source>A museum about the park. Our story, told properly.</source><translation>A museum about the park. Our story, told properly.</translation></message>
+    <message><source>Things break. Everything does, eventually.</source><translation>Things break. Everything does, eventually.</translation></message>
+    <message><source>He signed without looking at the last page.</source><translation>He signed without looking at the last page.</translation></message>
+    <message><source>The expert found the park charming.</source><translation>The expert found the park charming.</translation></message>
+    <message><source>Nice brochure. Nice story.</source><translation>Nice brochure. Nice story.</translation></message>
+    <message><source>They loved the opening anecdote.</source><translation>They loved the opening anecdote.</translation></message>
+    <message><source>Nobody ever waits for the audit.</source><translation>Nobody ever waits for the audit.</translation></message>
+    <message><source>They followed the paths, like everyone.</source><translation>They followed the paths, like everyone.</translation></message>
+    <message><source>The portrait is a very good likeness.</source><translation>The portrait is a very good likeness.</translation></message>
+    <message><source>He stamped it without reading. Like the first time.</source><translation>He stamped it without reading. Like the first time.</translation></message>
+    <message><source>Promising costs nothing.</source><translation>Promising costs nothing.</translation></message>
+    <message><source>The foundation carries its name well.</source><translation>The foundation carries its name well.</translation></message>
+    <message><source>Listed. Official. Engraved.</source><translation>Listed. Official. Engraved.</translation></message>
+    <message><source>I said no without thinking.</source><translation>I said no without thinking.</translation></message>
+    <message><source>The aviary is clean. Someone else tends it.</source><translation>The aviary is clean. Someone else tends it.</translation></message>
+    <message><source>Her office is storage now.</source><translation>Her office is storage now.</translation></message>
+    <message><source>The animals have no names anymore. Numbers are simpler.</source><translation>The animals have no names anymore. Numbers are simpler.</translation></message>
+    <message><source>The bench by the pond stays empty.</source><translation>The bench by the pond stays empty.</translation></message>
+    <message><source>The park is small, seen from here.</source><translation>The park is small, seen from here.</translation></message>
+    <message><source>I said everything. The words were short.</source><translation>I said everything. The words were short.</translation></message>
+    <message><source>The animals stayed. They did.</source><translation>The animals stayed. They did.</translation></message>
+    <message><source>Someone threw a coin in the pond.</source><translation>Someone threw a coin in the pond.</translation></message>
+    <message><source>The gate creaks. I leave it be.</source><translation>The gate creaks. I leave it be.</translation></message>
+    <message><source>Someone asked if I would do it all again.</source><translation>Someone asked if I would do it all again.</translation></message>
+    <message><source>She didn't answer. She won't.</source><translation>She didn't answer. She won't.</translation></message>
+    <message><source>I dialed the number. Hung up before.</source><translation>I dialed the number. Hung up before.</translation></message>
+    <message><source>Someone asked how she was doing.</source><translation>Someone asked how she was doing.</translation></message>
+    <message><source>The park is quieter. Better for work.</source><translation>The park is quieter. Better for work.</translation></message>
+    <message><source>I told the story. Nobody laughed at the right moment.</source><translation>I told the story. Nobody laughed at the right moment.</translation></message>
+    <message><source>She knew the birds by their song.</source><translation>She knew the birds by their song.</translation></message>
+    <message><source>The opening photo is still on the wall.</source><translation>The opening photo is still on the wall.</translation></message>
+    <message><source>Refounding was the right choice.</source><translation>Refounding was the right choice.</translation></message>
+    <message><source>Year %1. Nobody gives a speech this year.</source><translation>Year %1. Nobody gives a speech this year.</translation></message>
+    <message><source>Year %1. The cake comes from a caterer now.</source><translation>Year %1. The cake comes from a caterer now.</translation></message>
+    <message><source>Year %1. We clapped anyway.</source><translation>Year %1. We clapped anyway.</translation></message>
+    <message><source>Let it turn.</source><translation>Let it turn.</translation></message>
+    <message><source>He believes it.</source><translation>He believes it.</translation></message>
+    <message><source>Everything.</source><translation>Everything.</translation></message>
+    <message><source>Green thumb.</source><translation>Green thumb.</translation></message>
+    <message><source>My version.</source><translation>My version.</translation></message>
+    <message><source>We fix it.</source><translation>We fix it.</translation></message>
+    <message><source>It is.</source><translation>It is.</translation></message>
+    <message><source>It's ours.</source><translation>It's ours.</translation></message>
+    <message><source>Everyone does.</source><translation>Everyone does.</translation></message>
+    <message><source>The paths are lovely.</source><translation>The paths are lovely.</translation></message>
+    <message><source>Almost.</source><translation>Almost.</translation></message>
+    <message><source>Like the first time.</source><translation>Like the first time.</translation></message>
+    <message><source>Nothing at all.</source><translation>Nothing at all.</translation></message>
+    <message><source>Engraved.</source><translation>Engraved.</translation></message>
+    <message><source>Obviously.</source><translation>Obviously.</translation></message>
+    <message><source>Someone.</source><translation>Someone.</translation></message>
+    <message><source>It's practical.</source><translation>It's practical.</translation></message>
+    <message><source>Simpler.</source><translation>Simpler.</translation></message>
+    <message><source>It's in the sun.</source><translation>It's in the sun.</translation></message>
+    <message><source>It's real.</source><translation>It's real.</translation></message>
+    <message><source>They did.</source><translation>They did.</translation></message>
+    <message><source>A wish.</source><translation>A wish.</translation></message>
+    <message><source>Leave it.</source><translation>Leave it.</translation></message>
+    <message><source>I know.</source><translation>I know.</translation></message>
+    <message><source>Tomorrow.</source><translation>Tomorrow.</translation></message>
+    <message><source>She's fine.</source><translation>She's fine.</translation></message>
+    <message><source>It's better.</source><translation>It's better.</translation></message>
+    <message><source>I don't.</source><translation>I don't.</translation></message>
+    <message><source>Still.</source><translation>Still.</translation></message>
+    <message><source>It was the right choice.</source><translation>It was the right choice.</translation></message>
+    <message><source>It's good.</source><translation>It's good.</translation></message>
     <message><source>You're twenty. A plot at the edge of town, a friend who believes in it as much as you do, and enough money to last one summer.</source><translation>You're twenty. A plot at the edge of town, a friend who believes in it as much as you do, and enough money to last one summer.</translation></message>
     <message><source>Make it a place people remember.</source><translation>Make it a place people remember.</translation></message>
     <message><source>Open the park</source><translation>Open the park</translation></message>

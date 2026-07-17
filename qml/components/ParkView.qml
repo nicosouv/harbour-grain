@@ -163,6 +163,49 @@ Canvas {
             put(px + 1 + frame, pyy + 1, "#5d8db0")
         }
 
+        // Big wheel: a ring that turns, frame by frame.
+        _srand(71)
+        var wheels = shown(n["wheel"], 1)
+        for (i = 0; i < wheels; i++) {
+            var whx = Math.floor(cols * (0.65 + 0.2 * _rnd()))
+            var why = Math.floor(rows * (0.15 + 0.2 * _rnd()))
+            var s1 = frame === 0 ? "#7a6fa0" : "#9a8fc0"
+            var s2 = frame === 0 ? "#9a8fc0" : "#7a6fa0"
+            put(whx, why - 2, s1); put(whx, why + 2, s1)
+            put(whx - 2, why, s2); put(whx + 2, why, s2)
+            put(whx - 1, why - 1, s2); put(whx + 1, why - 1, s1)
+            put(whx - 1, why + 1, s1); put(whx + 1, why + 1, s2)
+            put(whx, why, "#d9d3c0")
+            put(whx, why + 3, "#5a5470")
+        }
+
+        // Greenhouse: pale glass, a glint sliding across.
+        _srand(79)
+        var greenhouses = shown(n["greenhouse"], 2)
+        for (i = 0; i < greenhouses; i++) {
+            var ghx = Math.floor(cols * (0.1 + 0.7 * _rnd()))
+            var ghy = Math.floor(rows * (0.55 + 0.3 * _rnd()))
+            for (x = 0; x < 3; x++) {
+                put(ghx + x, ghy, "#9fc9a8")
+                put(ghx + x, ghy + 1, "#7fae8c")
+            }
+            put(ghx + (frame === 0 ? 0 : 2), ghy, "#d8ecd8")
+        }
+
+        // The museum: stone, columns, a pediment. It doesn't move.
+        _srand(83)
+        var museums = shown(n["museum"], 1)
+        for (i = 0; i < museums; i++) {
+            var mx = Math.floor(cols * (0.25 + 0.4 * _rnd()))
+            var my = Math.floor(rows * (0.12 + 0.15 * _rnd()))
+            for (x = 0; x < 4; x++)
+                put(mx + x, my, "#a8a398")
+            put(mx, my + 1, "#8f8a80"); put(mx + 1, my + 1, "#a8a398")
+            put(mx + 2, my + 1, "#8f8a80"); put(mx + 3, my + 1, "#a8a398")
+            for (x = 0; x < 4; x++)
+                put(mx + x, my + 2, "#7d786e")
+        }
+
         // Creatures: the quiet side wandering in.
         _srand(67)
         var crs = Game.creatures

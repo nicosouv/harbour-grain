@@ -11,6 +11,7 @@ namespace grain {
 struct GenState {
     int    count = 0;
     bool   manager = false;
+    bool   broken = false;       // out of order until repaired; produces nothing
     qint64 runningUntilMs = 0;   // manual cycle in flight; pays out when an event passes this instant
 };
 
@@ -41,6 +42,17 @@ struct GameState {
     double bonusMult = 1.0;      // banked refound multiplier on all income
 
     quint32 echoes = 0;          // bitmask of owned improvements (persists across epochs)
+
+    int    age = Balance::kStartAge;  // advances with actions only; never resets
+    int    wealthMarks = 0;      // wealth thresholds crossed this epoch (each adds years)
+
+    int    raised = 0;           // funding tiers closed this epoch
+    qint64 lastRaiseMs = 0;      // real-time cooldown anchor for the next raise
+    int    raisedFast = 0;       // the lifetime cursor: fast vs slow choices
+    int    raisedSlow = 0;
+    int    eased = 0;            // cadence relief earned by slow raises
+
+    int    incidents = 0;        // lifetime breakdown count
 
     GenState gens[Balance::GenCount];
 

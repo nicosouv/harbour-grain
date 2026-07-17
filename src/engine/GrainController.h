@@ -38,9 +38,19 @@ class GrainController : public QObject
     Q_PROPERTY(QString pendingNarration READ pendingNarration NOTIFY stateChanged)
     Q_PROPERTY(double sleepPercent READ sleepPercent NOTIFY stateChanged)
     Q_PROPERTY(double focusPercent READ focusPercent NOTIFY stateChanged)
-    Q_PROPERTY(int founderAge READ founderAgeQ NOTIFY liveChanged)
-    Q_PROPERTY(int parkYear READ parkYear NOTIFY liveChanged)
+    Q_PROPERTY(int founderAge READ founderAgeQ NOTIFY stateChanged)
+    Q_PROPERTY(int parkYear READ parkYear NOTIFY stateChanged)
     Q_PROPERTY(bool donutVisible READ donutVisible NOTIFY stateChanged)
+    Q_PROPERTY(bool herGone READ herGoneQ NOTIFY stateChanged)
+
+    // Funding rounds.
+    Q_PROPERTY(int raiseTier READ raiseTier NOTIFY stateChanged)
+    Q_PROPERTY(bool raiseReady READ raiseReadyQ NOTIFY liveChanged)
+    Q_PROPERTY(bool raisePending READ raisePending NOTIFY liveChanged)
+    Q_PROPERTY(double raiseThreshold READ raiseThresholdQ NOTIFY stateChanged)
+    Q_PROPERTY(double raiseCooldownLeft READ raiseCooldownLeftQ NOTIFY liveChanged)
+    Q_PROPERTY(bool plateaued READ plateaued NOTIFY liveChanged)
+    Q_PROPERTY(bool decisionsVisible READ decisionsVisible NOTIFY stateChanged)
     Q_PROPERTY(QVariantList generators READ generators NOTIFY stateChanged)
     Q_PROPERTY(QStringList creatures READ creatures NOTIFY stateChanged)
     Q_PROPERTY(double creatureBonusPercent READ creatureBonusPercent NOTIFY stateChanged)
@@ -90,6 +100,14 @@ public:
     int founderAgeQ() const;
     int parkYear() const;
     bool donutVisible() const;
+    bool herGoneQ() const;
+    int raiseTier() const;
+    bool raiseReadyQ() const;
+    bool raisePending() const;
+    double raiseThresholdQ() const;
+    double raiseCooldownLeftQ() const;
+    bool plateaued() const;
+    bool decisionsVisible() const;
     int buyAmount() const;
     void setBuyAmount(int n);
 
@@ -116,6 +134,8 @@ public:
     Q_INVOKABLE void run(int g);          // start a manual production cycle
     Q_INVOKABLE void arrive();            // step past the intro
     Q_INVOKABLE void buyEcho(int i);      // one-shot improvement
+    Q_INVOKABLE void closeRaise(bool fastChoice);   // answer the funding round
+    Q_INVOKABLE void repair(int g);       // fix a broken attraction
     Q_INVOKABLE void ackNarration();      // mark the pending narration as shown
     Q_INVOKABLE void appActivated();      // arms the ambient interference roll
     Q_INVOKABLE void inaugurate();
@@ -135,6 +155,12 @@ public:
 
     // Founder sleep readout over time (one point per resolved moment): [{ t, v }].
     Q_INVOKABLE QVariantList sleepHistory() const;
+
+    // Cumulative soin over time, downsampled: [{ t, v }].
+    Q_INVOKABLE QVariantList soinHistory() const;
+
+    // Cover choices over time: [{ t, b, s }] (cumulative buried / sat).
+    Q_INVOKABLE QVariantList decisionsHistory() const;
 
     // Short human formatting for big numbers ("12,340", "1.24 M").
     Q_INVOKABLE QString fmt(double value) const;
@@ -169,6 +195,8 @@ private:
     QVector<QPair<qint64, double> > m_history;  // (instant, epochRecette) for the chart
     int m_historyEpoch = 0;
     QVector<QPair<qint64, double> > m_founderHistory;  // (instant, sleep) at each moment
+    QVector<QPair<qint64, double> > m_soinHistory;     // (instant, cumulative soin)
+    QVariantList m_decisionHistory;                     // {t, b, s} per cover choice
     bool m_staticArmed = true;   // one ambient-interference roll per app activation
 
     bool beatSeen(const QString& key) const;

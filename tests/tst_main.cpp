@@ -46,6 +46,10 @@ Event tick(qint64 ms, bool active, qint64 at = 1000)
     return ev("tick", json({{"ms", double(ms)}, {"active", active}, {"at", double(at)}}));
 }
 Event run(int g, qint64 at) { return ev("run", json({{"g", g}, {"at", double(at)}})); }
+Event raiseEv(int i, bool fastChoice, qint64 at)
+{
+    return ev("raise", json({{"i", i}, {"fast", fastChoice}, {"at", double(at)}}));
+}
 Event buyN(int g, int n, qint64 at = 1000)
 {
     return ev("buy", json({{"g", g}, {"n", n}, {"at", double(at)}}));
@@ -90,7 +94,10 @@ private slots:
     void foldBuryTightensCadence();
     void foldSitEasesAndCosts();
     void foldConfessResetsEpoch();
-    void foldArriveAndAge();
+    void foldAgeFromActions();
+    void foldRaiseAndCeiling();
+    void foldMalusAndAbsence();
+    void foldIncidentAndRepair();
     void foldEchoUnlockAndBuy();
     void founderReadouts();
     void foldReplayDeterministic();
@@ -434,23 +441,127 @@ void TstGrain::foldConfessResetsEpoch()
     QCOMPARE(s3.openedAtMs, Q_INT64_C(9600));
 }
 
-void TstGrain::foldArriveAndAge()
+void TstGrain::foldAgeFromActions()
 {
     QVector<Event> v;
     v.append(ev("arrive", json({{"at", 1000.0}})));
     GameState s = fold(v, kSalt);
     QVERIFY(s.arrived);
-    QCOMPARE(s.arrivedAtMs, Q_INT64_C(1000));
-    QCOMPARE(founderAge(s, 1000), Balance::kStartAge);
-    QCOMPARE(founderAge(s, 1000 + 3 * Balance::kAgeYearMs), Balance::kStartAge + 3);
-    QCOMPARE(founderAge(s, 1000 + 1000 * Balance::kAgeYearMs), Balance::kMaxAge);
+    QCOMPARE(s.age, Balance::kStartAge);
 
-    // A refound rebuilds the park, not the years.
-    v.append(tap(1000, 2000));
+    // Small change: no years pass.
+    v.append(tap(500, 1500));
+    s = fold(v, kSalt);
+    QCOMPARE(s.age, Balance::kStartAge);
+
+    // Crossing a wealth mark costs years.
+    v.append(tap(20000, 2000));
+    s = fold(v, kSalt);
+    QCOMPARE(s.age, Balance::kStartAge + Balance::kAgeWealth);
+
+    // The opening does too.
+    v.append(open(2500));
+    s = fold(v, kSalt);
+    QCOMPARE(s.age, Balance::kStartAge + Balance::kAgeWealth + Balance::kAgeOpen);
+
+    // And a refound: the years never come back.
     v.append(confess(3000));
     s = fold(v, kSalt);
-    QVERIFY(s.arrived);
-    QCOMPARE(s.arrivedAtMs, Q_INT64_C(1000));
+    QCOMPARE(s.age,
+             Balance::kStartAge + Balance::kAgeWealth + Balance::kAgeOpen + Balance::kAgeConfess);
+    QCOMPARE(s.wealthMarks, 0);
+    QVERIFY(herGone(s));
+    QVERIFY(founderAge(s) == s.age);
+}
+
+void TstGrain::foldRaiseAndCeiling()
+{
+    QVector<Event> v = richStart(150000);
+    v.append(raiseEv(0, false, 2000));
+    GameState s = fold(v, kSalt);
+    QCOMPARE(s.raised, 1);
+    QCOMPARE(s.raisedSlow, 1);
+    QCOMPARE(s.eased, 1);
+    QVERIFY(s.soinEarned >= Balance::kRaiseSlowSoin);
+
+    // A stale tier index is a no-op.
+    v.append(raiseEv(0, true, 3000));
+    QCOMPARE(fold(v, kSalt).raised, 1);
+
+    // The next tier waits for real time.
+    QVector<Event> v2 = v;
+    v2.append(tap(2000000, 4000));
+    v2.append(raiseEv(1, true, 5000));
+    GameState s2 = fold(v2, kSalt);
+    QCOMPARE(s2.raised, 1);
+    v2.append(raiseEv(1, true, 2000 + Balance::kTierCooldownMs[1] + 1));
+    s2 = fold(v2, kSalt);
+    QCOMPARE(s2.raised, 2);
+    QCOMPARE(s2.raisedFast, 1);
+
+    // Past the ceiling the flow shrinks to a trickle.
+    QVector<Event> v3 = richStart(150000);
+    v3.append(tap(150000, 3000));
+    const double before = fold(v3, kSalt).recette;
+    v3.append(tap(100000, 3500));
+    const double gain = fold(v3, kSalt).recette - before;
+    QVERIFY(std::fabs(gain - 100000.0 * Balance::kSoftCapScale) < 1e-6);
+}
+
+void TstGrain::foldMalusAndAbsence()
+{
+    GameState fresh;
+    QCOMPARE(sleepFactor(fresh), 1.0);
+    QCOMPARE(focusFactor(fresh), 1.0);
+
+    GameState tired;
+    tired.buried = 100;
+    QVERIFY(std::fabs(sleepFactor(tired) - Balance::kSleepWorkFloor) < 1e-9);
+    QVERIFY(std::fabs(focusFactor(tired) - Balance::kFocusFlowFloor) < 1e-9);
+    QVERIFY(tapValue(tired) < tapValue(fresh));
+
+    GameState gone;
+    gone.epoch = 1;
+    QVERIFY(std::fabs(soinPerSec(gone)
+                      - Balance::kSoinBase * Balance::kAbsenceSoinScale) < 1e-12);
+}
+
+void TstGrain::foldIncidentAndRepair()
+{
+    QVector<Event> v = richStart(100000);
+    v.append(buy(Balance::Gate, 1000));
+    v.append(hire(Balance::Gate, 1100));
+
+    // Find a deterministic instant whose roll breaks the gate.
+    GameState s;
+    qint64 at = 10000;
+    bool broke = false;
+    for (int i = 0; i < 5000 && !broke; ++i) {
+        QVector<Event> probe = v;
+        probe.append(tick(3600000, false, at));
+        s = fold(probe, kSalt);
+        if (s.incidents > 0) {
+            v = probe;
+            broke = true;
+        } else {
+            at += 977;
+        }
+    }
+    QVERIFY(broke);
+    QVERIFY(s.gens[Balance::Gate].broken);
+
+    // A broken attraction produces nothing.
+    const double earnedBefore = s.earnedGens[Balance::Gate];
+    QVector<Event> v2 = v;
+    v2.append(tick(3600000, false, at + 4000000));
+    GameState s2 = fold(v2, kSalt);
+    QCOMPARE(s2.earnedGens[Balance::Gate], earnedBefore);
+
+    // Repairing restores it.
+    v2.append(ev("repair", json({{"g", int(Balance::Gate)}, {"at", double(at + 4000001)}})));
+    s2 = fold(v2, kSalt);
+    QVERIFY(!s2.gens[Balance::Gate].broken);
+    QVERIFY(s2.recette < fold(v, kSalt).recette + 1e-9 + 3600.0);   // the repair was paid
 }
 
 void TstGrain::foldEchoUnlockAndBuy()
@@ -499,6 +610,7 @@ void TstGrain::foldReplayDeterministic()
     QVector<Event> v = richStart(100000);
     v.append(buy(Balance::Gate));
     v.append(open(1000));
+    v.append(raiseEv(0, true, 1500));
     v.append(hire(Balance::Gate));
     v.append(tick(123456, true, 2000));
     v.append(care("feed", Balance::kCareCooldownMs + 1));
@@ -508,6 +620,9 @@ void TstGrain::foldReplayDeterministic()
 
     const GameState a = fold(v, kSalt);
     const GameState b = fold(v, kSalt);
+    QCOMPARE(a.age, b.age);
+    QCOMPARE(a.raisedFast, b.raisedFast);
+    QCOMPARE(a.incidents, b.incidents);
 
     QCOMPARE(a.recette, b.recette);
     QCOMPARE(a.soin, b.soin);

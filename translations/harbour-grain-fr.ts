@@ -33,6 +33,59 @@
     <message><source>Put the old photos away</source><translation>Ranger les vieilles photos</translation></message>
     <message><source>Don't think about it</source><translation>Ne pas y penser</translation></message>
     <message><source>By hand</source><translation>À la main</translation></message>
+    <message><source>The big wheel</source><translation>La grande roue</translation></message>
+    <message><source>The greenhouse</source><translation>La serre</translation></message>
+    <message><source>The park museum</source><translation>Le musée du parc</translation></message>
+    <message><source>at capacity</source><translation>à pleine capacité</translation></message>
+    <message><source>Funding</source><translation>Financement</translation></message>
+    <message><source>Next round in %1</source><translation>Prochaine levée dans %1</translation></message>
+    <message><source>out of order</source><translation>en panne</translation></message>
+    <message><source>Decisions</source><translation>Décisions</translation></message>
+    <message><source>Double the maintenance crew</source><translation>Doubler l'équipe d'entretien</translation></message>
+    <message><source>Light the paths at night</source><translation>Éclairer les allées la nuit</translation></message>
+    <message><source>A bigger office, farther from the gate</source><translation>Un bureau plus grand, plus loin du portail</translation></message>
+    <message><source>Silence the gate's creak</source><translation>Faire taire le grincement du portail</translation></message>
+    <message><source>Earbuds for the commute</source><translation>Des écouteurs pour les trajets</translation></message>
+    <message><source>Lunch at the desk</source><translation>Déjeuner au bureau</translation></message>
+    <message><source>Replace the bench by the pond</source><translation>Remplacer le banc près de l'étang</translation></message>
+    <message><source>Scan the archives, discard the originals</source><translation>Numériser les archives, jeter les originaux</translation></message>
+    <message><source>Stop celebrating anniversaries</source><translation>Ne plus fêter les anniversaires</translation></message>
+    <message><source>Sell the house. The office will do.</source><translation>Vendre la maison. Le bureau suffit.</translation></message>
+    <message><source>The banker wants to see the first summer's books.</source><translation>Le banquier veut voir les comptes du premier été.</translation></message>
+    <message><source>The insurer asks for the plot's history.</source><translation>L'assureur demande l'historique du terrain.</translation></message>
+    <message><source>The chamber of commerce wants the park's story for its brochure.</source><translation>La chambre de commerce veut raconter l'histoire du parc dans sa brochure.</translation></message>
+    <message><source>The investors ask who signed the original permit.</source><translation>Les investisseurs demandent qui a signé le permis d'origine.</translation></message>
+    <message><source>Close the round this week, or wait for the audit?</source><translation>Fermer la levée cette semaine, ou attendre l'audit ?</translation></message>
+    <message><source>The foreign fund wants to tour the park, no guide.</source><translation>Le fonds étranger veut visiter le parc, sans guide.</translation></message>
+    <message><source>A journalist is writing a profile of the founder.</source><translation>Un journaliste écrit un portrait du fondateur.</translation></message>
+    <message><source>The inspector wants to see the permit again.</source><translation>L'inspecteur veut revoir le permis.</translation></message>
+    <message><source>The neighbours will sell if the park's story stays intact.</source><translation>Les voisins vendent si l'histoire du parc reste intacte.</translation></message>
+    <message><source>Create a foundation in the park's name.</source><translation>Créer une fondation au nom du parc.</translation></message>
+    <message><source>The heritage listing requires a file on the origins.</source><translation>Le classement au patrimoine exige un dossier sur les origines.</translation></message>
+    <message><source>A group offers to buy. They would keep everything: the name, the story.</source><translation>Un groupe propose de racheter. Ils garderaient tout : le nom, l'histoire.</translation></message>
+    <message><source>Show the prepared binder</source><translation>Montrer le classeur préparé</translation></message>
+    <message><source>Send the usual file</source><translation>Envoyer le dossier habituel</translation></message>
+    <message><source>Proofread the text yourself</source><translation>Relire le texte soi-même</translation></message>
+    <message><source>Show the permit</source><translation>Montrer le permis</translation></message>
+    <message><source>Close this week</source><translation>Fermer cette semaine</translation></message>
+    <message><source>Mark out the route</source><translation>Baliser le parcours</translation></message>
+    <message><source>Show the other one</source><translation>Montrer l'autre</translation></message>
+    <message><source>Promise</source><translation>Promettre</translation></message>
+    <message><source>In the park's name</source><translation>Au nom du parc</translation></message>
+    <message><source>Have the file written</source><translation>Faire écrire le dossier</translation></message>
+    <message><source>Refuse. It's mine.</source><translation>Refuser. C'est à moi.</translation></message>
+    <message><source>Show all the binders</source><translation>Montrer tous les classeurs</translation></message>
+    <message><source>Let their expert visit</source><translation>Laisser son expert visiter</translation></message>
+    <message><source>Let them interview the staff</source><translation>Les laisser interviewer l'équipe</translation></message>
+    <message><source>Answer: me.</source><translation>Répondre : moi.</translation></message>
+    <message><source>Wait for the audit</source><translation>Attendre l'audit</translation></message>
+    <message><source>Hand over the keys</source><translation>Donner les clés</translation></message>
+    <message><source>Talk about her, mostly</source><translation>Parler d'elle, surtout</translation></message>
+    <message><source>Show the original</source><translation>Montrer l'original</translation></message>
+    <message><source>Buy without promising, dearer</source><translation>Acheter sans promettre, plus cher</translation></message>
+    <message><source>In her name</source><translation>À son nom à elle</translation></message>
+    <message><source>Write it yourself, all of it</source><translation>L'écrire soi-même, tout</translation></message>
+    <message><source>Refuse. It's ours.</source><translation>Refuser. C'est à nous.</translation></message>
     <message><source>Sources</source><translation>Sources</translation></message>
     <message><source>Park life</source><translation>La vie du parc</translation></message>
     <message><source>animals</source><translation>animaux</translation></message>
@@ -205,6 +258,77 @@
     <message><source>Three times.</source><translation>Trois fois.</translation></message>
     <message><source>Everyone.</source><translation>Tout le monde.</translation></message>
     <message><source>Exactly.</source><translation>Justement.</translation></message>
+    <message><source>The wheel turns on its own. Like everything else.</source><translation>La roue tourne toute seule. Comme le reste.</translation></message>
+    <message><source>The greenhouse doesn't need me either.</source><translation>La serre non plus n'a pas besoin de moi.</translation></message>
+    <message><source>The museum guide tells it better than I do.</source><translation>Le guide du musée la raconte mieux que moi.</translation></message>
+    <message><source>A big wheel. You can see the whole park from up there.</source><translation>Une grande roue. De là-haut, on voit tout le parc.</translation></message>
+    <message><source>A greenhouse. She keeps the cuttings.</source><translation>Une serre. Elle garde les boutures.</translation></message>
+    <message><source>A museum about the park. Our story, told properly.</source><translation>Un musée du parc. Notre histoire, bien racontée.</translation></message>
+    <message><source>Things break. Everything does, eventually.</source><translation>Ça casse. Tout casse, à force.</translation></message>
+    <message><source>He signed without looking at the last page.</source><translation>Il a signé sans regarder la dernière page.</translation></message>
+    <message><source>The expert found the park charming.</source><translation>L'expert a trouvé le parc charmant.</translation></message>
+    <message><source>Nice brochure. Nice story.</source><translation>Belle brochure. Belle histoire.</translation></message>
+    <message><source>They loved the opening anecdote.</source><translation>Ils ont adoré l'anecdote de l'ouverture.</translation></message>
+    <message><source>Nobody ever waits for the audit.</source><translation>Personne n'attend jamais l'audit.</translation></message>
+    <message><source>They followed the paths, like everyone.</source><translation>Ils ont suivi les allées, comme tout le monde.</translation></message>
+    <message><source>The portrait is a very good likeness.</source><translation>Le portrait est très ressemblant.</translation></message>
+    <message><source>He stamped it without reading. Like the first time.</source><translation>Il a tamponné sans lire. Comme la première fois.</translation></message>
+    <message><source>Promising costs nothing.</source><translation>Promettre ne coûte rien.</translation></message>
+    <message><source>The foundation carries its name well.</source><translation>La fondation porte bien son nom.</translation></message>
+    <message><source>Listed. Official. Engraved.</source><translation>Classé. Officiel. Gravé.</translation></message>
+    <message><source>I said no without thinking.</source><translation>J'ai dit non sans réfléchir.</translation></message>
+    <message><source>The aviary is clean. Someone else tends it.</source><translation>La volière est propre. Quelqu'un d'autre s'en occupe.</translation></message>
+    <message><source>Her office is storage now.</source><translation>Son bureau sert de réserve, maintenant.</translation></message>
+    <message><source>The animals have no names anymore. Numbers are simpler.</source><translation>Les animaux n'ont plus de noms. Des numéros, c'est plus simple.</translation></message>
+    <message><source>The bench by the pond stays empty.</source><translation>Le banc près de l'étang reste vide.</translation></message>
+    <message><source>The park is small, seen from here.</source><translation>Le parc est petit, vu d'ici.</translation></message>
+    <message><source>I said everything. The words were short.</source><translation>J'ai tout dit. Les mots étaient courts.</translation></message>
+    <message><source>The animals stayed. They did.</source><translation>Les animaux sont restés. Eux.</translation></message>
+    <message><source>Someone threw a coin in the pond.</source><translation>Quelqu'un a jeté une pièce dans l'étang.</translation></message>
+    <message><source>The gate creaks. I leave it be.</source><translation>Le portail grince. Je le laisse.</translation></message>
+    <message><source>Someone asked if I would do it all again.</source><translation>On m'a demandé si je referais tout.</translation></message>
+    <message><source>She didn't answer. She won't.</source><translation>Elle n'a pas répondu. Elle ne répondra pas.</translation></message>
+    <message><source>I dialed the number. Hung up before.</source><translation>J'ai composé le numéro. Raccroché avant.</translation></message>
+    <message><source>Someone asked how she was doing.</source><translation>Quelqu'un a demandé de ses nouvelles.</translation></message>
+    <message><source>The park is quieter. Better for work.</source><translation>Le parc est plus calme. C'est mieux pour travailler.</translation></message>
+    <message><source>I told the story. Nobody laughed at the right moment.</source><translation>J'ai raconté l'histoire. Personne n'a ri au bon moment.</translation></message>
+    <message><source>She knew the birds by their song.</source><translation>Les oiseaux, elle les reconnaissait au chant.</translation></message>
+    <message><source>The opening photo is still on the wall.</source><translation>La photo de l'ouverture est toujours au mur.</translation></message>
+    <message><source>Refounding was the right choice.</source><translation>Refonder, c'était le bon choix.</translation></message>
+    <message><source>Year %1. Nobody gives a speech this year.</source><translation>An %1. Personne ne fait de discours, cette année.</translation></message>
+    <message><source>Year %1. The cake comes from a caterer now.</source><translation>An %1. Le gâteau vient d'un traiteur, maintenant.</translation></message>
+    <message><source>Year %1. We clapped anyway.</source><translation>An %1. On a applaudi quand même.</translation></message>
+    <message><source>Let it turn.</source><translation>Laisse tourner.</translation></message>
+    <message><source>He believes it.</source><translation>Il y croit, lui.</translation></message>
+    <message><source>Everything.</source><translation>Tout.</translation></message>
+    <message><source>Green thumb.</source><translation>La main verte.</translation></message>
+    <message><source>My version.</source><translation>Ma version.</translation></message>
+    <message><source>We fix it.</source><translation>On répare.</translation></message>
+    <message><source>It is.</source><translation>Il l'est.</translation></message>
+    <message><source>It's ours.</source><translation>C'est la nôtre.</translation></message>
+    <message><source>Everyone does.</source><translation>Tout le monde l'adore.</translation></message>
+    <message><source>The paths are lovely.</source><translation>Les allées sont belles.</translation></message>
+    <message><source>Almost.</source><translation>Presque.</translation></message>
+    <message><source>Like the first time.</source><translation>Comme la première fois.</translation></message>
+    <message><source>Nothing at all.</source><translation>Rien du tout.</translation></message>
+    <message><source>Engraved.</source><translation>Gravé.</translation></message>
+    <message><source>Obviously.</source><translation>Évidemment.</translation></message>
+    <message><source>Someone.</source><translation>Quelqu'un.</translation></message>
+    <message><source>It's practical.</source><translation>C'est pratique.</translation></message>
+    <message><source>Simpler.</source><translation>Plus simple.</translation></message>
+    <message><source>It's in the sun.</source><translation>Il est au soleil.</translation></message>
+    <message><source>It's real.</source><translation>Il est vrai.</translation></message>
+    <message><source>They did.</source><translation>Eux.</translation></message>
+    <message><source>A wish.</source><translation>Un vœu.</translation></message>
+    <message><source>Leave it.</source><translation>Laisse.</translation></message>
+    <message><source>I know.</source><translation>Je sais.</translation></message>
+    <message><source>Tomorrow.</source><translation>Demain.</translation></message>
+    <message><source>She's fine.</source><translation>Elle va bien.</translation></message>
+    <message><source>It's better.</source><translation>C'est mieux.</translation></message>
+    <message><source>I don't.</source><translation>Moi non.</translation></message>
+    <message><source>Still.</source><translation>Quand même.</translation></message>
+    <message><source>It was the right choice.</source><translation>C'était le bon choix.</translation></message>
+    <message><source>It's good.</source><translation>Il est bon.</translation></message>
     <message><source>You're twenty. A plot at the edge of town, a friend who believes in it as much as you do, and enough money to last one summer.</source><translation>Vous avez vingt ans. Un terrain au bord de la ville, une amie qui y croit autant que vous, et de quoi tenir un été.</translation></message>
     <message><source>Make it a place people remember.</source><translation>Faites-en un endroit dont on se souvient.</translation></message>
     <message><source>Open the park</source><translation>Ouvrir le parc</translation></message>

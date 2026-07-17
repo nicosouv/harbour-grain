@@ -19,9 +19,16 @@ double creatureMult(const GameState& s);            // small bonus from the mena
 double echoMult(const GameState& s);                // small bonus from owned improvements
 bool   echoOwned(const GameState& s, int i);
 int    momentsResolved(const GameState& s);         // buried + sat (unlock counter for echoes)
-double founderSleep(const GameState& s);            // display-only readouts, 0..1
+double founderSleep(const GameState& s);            // readouts, 0..1 — and they feed back:
 double founderFocus(const GameState& s);
-int    founderAge(const GameState& s, qint64 nowMs); // starts at 20, one year per real day
+double sleepFactor(const GameState& s);             // scales taps and manual cycles
+double focusFactor(const GameState& s);             // scales the managed flow
+int    founderAge(const GameState& s);              // starts at 20, advances with actions only
+bool   herGone(const GameState& s);                 // true after the first confession, forever
+double repairCost(const GameState& s, int g);       // fixing a broken attraction
+double tierCeiling(const GameState& s);             // soft cap on epoch income; <0 = none
+bool   raiseReady(const GameState& s, qint64 nowMs); // next funding round can be closed
+qint64 raiseCooldownLeftMs(const GameState& s, qint64 nowMs);
 double genRate(const GameState& s, int g);          // full per-second output of a generator
 double cyclePayout(const GameState& s, int g);      // one manual cycle's payout (pre-foundation)
 double tapValue(const GameState& s);                // base recette per tap (pre-foundation)
