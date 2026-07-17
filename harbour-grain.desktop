@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+X-Nemo-Application-Type=silica-qt5
+Icon=harbour-grain
+Exec=harbour-grain
+Name=Grain
+Comment=A quiet little park that grows
+
+[X-Sailjail]
+# Fully offline: no Internet, no camera, no media access. The app only touches its own private
+# sandbox dirs (SQLite DB + QSettings), which need no permission.
+Permissions=
+OrganizationName=harbour-grain
+ApplicationName=harbour-grain
