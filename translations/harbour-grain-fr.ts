@@ -20,6 +20,14 @@
         <translation>La volière</translation>
     </message>
     <message>
+        <source>The carousel</source>
+        <translation>Le carrousel</translation>
+    </message>
+    <message>
+        <source>The pond</source>
+        <translation>L'étang</translation>
+    </message>
+    <message>
         <source>Settings</source>
         <translation>Réglages</translation>
     </message>
@@ -99,6 +107,14 @@
         <translation>La volière</translation>
     </message>
     <message>
+        <source>The carousel</source>
+        <translation>Le carrousel</translation>
+    </message>
+    <message>
+        <source>The pond</source>
+        <translation>L'étang</translation>
+    </message>
+    <message>
         <source>The grand opening</source>
         <translation>La grande ouverture</translation>
     </message>
@@ -120,6 +136,10 @@
     <message>
         <source>It's quiet here.</source>
         <translation>C'est calme, ici.</translation>
+    </message>
+    <message>
+        <source>to the park</source>
+        <translation>pour le parc</translation>
     </message>
 </context>
 <context>
@@ -170,6 +190,18 @@
     <message>
         <source>Sit a while</source>
         <translation>Rester un peu</translation>
+    </message>
+    <message>
+        <source>Feed</source>
+        <translation>Nourrir</translation>
+    </message>
+    <message>
+        <source>Linger</source>
+        <translation>S'attarder</translation>
+    </message>
+    <message>
+        <source>care</source>
+        <translation>soin</translation>
     </message>
 </context>
 </TS>

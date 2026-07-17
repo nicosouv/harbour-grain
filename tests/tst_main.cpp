@@ -45,6 +45,11 @@ Event tick(qint64 ms, bool active, qint64 at = 1000)
 {
     return ev("tick", json({{"ms", double(ms)}, {"active", active}, {"at", double(at)}}));
 }
+Event run(int g, qint64 at) { return ev("run", json({{"g", g}, {"at", double(at)}})); }
+Event buyN(int g, int n, qint64 at = 1000)
+{
+    return ev("buy", json({{"g", g}, {"n", n}, {"at", double(at)}}));
+}
 Event care(const QString& k, qint64 at) { return ev("care", json({{"k", k}, {"at", double(at)}})); }
 Event bury(qint64 at) { return ev("bury", json({{"at", double(at)}})); }
 Event sit(qint64 at) { return ev("sit", json({{"at", double(at)}})); }
@@ -72,6 +77,9 @@ private slots:
     void foldTap();
     void foldBuyExponentialCost();
     void foldBuyUnaffordableIsNoop();
+    void foldBulkBuy();
+    void foldMilestoneDoubles();
+    void foldCycleRunAndSettle();
     void foldManagerAutomation();
     void foldOpeningOneShot();
     void foldFoundationShare();
@@ -161,6 +169,64 @@ void TstGrain::foldBuyUnaffordableIsNoop()
     const GameState s = fold(v, kSalt);
     QCOMPARE(s.gens[Balance::Aviary].count, 0);
     QCOMPARE(s.recette, Balance::kTapBase);
+}
+
+void TstGrain::foldBulkBuy()
+{
+    QVector<Event> v = richStart(100000);
+    v.append(buyN(Balance::Gate, 10));
+    const GameState s = fold(v, kSalt);
+    QCOMPARE(s.gens[Balance::Gate].count, 10);
+    const GameState empty;
+    QVERIFY(std::fabs(s.recette - (100000.0 - bulkCost(empty, Balance::Gate, 10))) < 1e-6);
+
+    // An unaffordable bundle is a no-op, not a partial buy.
+    QVector<Event> v2;
+    v2.append(tap(1));
+    v2.append(buyN(Balance::Aviary, 10));
+    QCOMPARE(fold(v2, kSalt).gens[Balance::Aviary].count, 0);
+}
+
+void TstGrain::foldMilestoneDoubles()
+{
+    QCOMPARE(genMultiplier(24), 1.0);
+    QCOMPARE(genMultiplier(25), 2.0);
+    QCOMPARE(genMultiplier(100), 8.0);
+    QCOMPARE(nextMilestoneAt(0), 25);
+    QCOMPARE(nextMilestoneAt(400), 0);
+
+    QVector<Event> v = richStart(100000);
+    v.append(buyN(Balance::Gate, 25));
+    v.append(hire(Balance::Gate));
+    v.append(tick(10000, false, 2000));
+    const GameState s = fold(v, kSalt);
+    const double expected = 25 * Balance::kGens[Balance::Gate].baseRate * 2.0 * 10.0;
+    QVERIFY(std::fabs(s.earnedGens[Balance::Gate] - expected) < 1e-6);
+}
+
+void TstGrain::foldCycleRunAndSettle()
+{
+    QVector<Event> v = richStart(1000);
+    v.append(buy(Balance::Gate, 1000));
+    v.append(run(Balance::Gate, 2000));
+    GameState s = fold(v, kSalt);
+    QCOMPARE(s.gens[Balance::Gate].runningUntilMs,
+             Q_INT64_C(2000) + Balance::kGens[Balance::Gate].cycleMs);
+    QCOMPARE(s.earnedGens[Balance::Gate], 0.0);
+
+    // A second run while one is in flight is ignored.
+    QVector<Event> v2 = v;
+    v2.append(run(Balance::Gate, 2500));
+    QCOMPARE(fold(v2, kSalt).gens[Balance::Gate].runningUntilMs,
+             s.gens[Balance::Gate].runningUntilMs);
+
+    // Any later event settles the matured payout.
+    v.append(tick(1000, true, 2000 + Balance::kGens[Balance::Gate].cycleMs + 1));
+    s = fold(v, kSalt);
+    const double expected = Balance::kGens[Balance::Gate].baseRate
+                          * (Balance::kGens[Balance::Gate].cycleMs / 1000.0);
+    QVERIFY(std::fabs(s.earnedGens[Balance::Gate] - expected) < 1e-9);
+    QCOMPARE(s.gens[Balance::Gate].runningUntilMs, Q_INT64_C(0));
 }
 
 void TstGrain::foldManagerAutomation()
@@ -283,21 +349,28 @@ void TstGrain::foldBuryTightensCadence()
 {
     QVector<Event> v = richStart(1000);
     v.append(open(1000));
-    GameState s = fold(v, kSalt);
-    const qint64 before = momentIntervalMs(s, kSalt);
 
-    QVector<Event> v2 = v;
+    // The very first moment lands quickly after the opening.
+    const GameState s0 = fold(v, kSalt);
+    QVERIFY(momentIntervalMs(s0, kSalt) <= Balance::kMomentFirstMs * 5 / 4 + 1);
+
+    QVector<Event> v1 = v;
+    v1.append(bury(2000));
+    const GameState s1 = fold(v1, kSalt);
+    const qint64 one = momentIntervalMs(s1, kSalt);
+
+    QVector<Event> v6 = v1;
     for (int i = 0; i < 5; ++i)
-        v2.append(bury(2000 + i));
-    GameState s2 = fold(v2, kSalt);
-    const qint64 after = momentIntervalMs(s2, kSalt);
+        v6.append(bury(3000 + i));
+    const GameState s6 = fold(v6, kSalt);
+    const qint64 six = momentIntervalMs(s6, kSalt);
 
-    QVERIFY(after < before);
-    QVERIFY(after >= Balance::kMomentFloorMs);
+    QVERIFY(six < one);
+    QVERIFY(six >= Balance::kMomentFloorMs);
 
     // Due only once the interval has elapsed since the last resolution.
-    QVERIFY(!momentDue(s2, kSalt, Q_INT64_C(2004) + after - 1));
-    QVERIFY(momentDue(s2, kSalt, Q_INT64_C(2004) + after + 1));
+    QVERIFY(!momentDue(s6, kSalt, Q_INT64_C(3004) + six - 1));
+    QVERIFY(momentDue(s6, kSalt, Q_INT64_C(3004) + six + 1));
 }
 
 void TstGrain::foldSitEasesAndCosts()

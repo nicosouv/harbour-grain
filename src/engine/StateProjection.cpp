@@ -41,6 +41,17 @@ void addSoin(GameState& s, double amount, quint64 salt)
     }
 }
 
+// Pay out any manual cycle that has matured by instant `at`.
+void settleCycles(GameState& s, qint64 at)
+{
+    for (int g = 0; g < Balance::GenCount; ++g) {
+        if (s.gens[g].runningUntilMs > 0 && at >= s.gens[g].runningUntilMs) {
+            addIncome(s, cyclePayout(s, g), g);
+            s.gens[g].runningUntilMs = 0;
+        }
+    }
+}
+
 QJsonObject parse(const Event& e)
 {
     return QJsonDocument::fromJson(e.payload.toUtf8()).object();
@@ -60,30 +71,74 @@ double genCost(const GameState& s, int g)
     return d.baseCost * std::pow(d.costGrowth, s.gens[g].count);
 }
 
+double bulkCost(const GameState& s, int g, int n)
+{
+    if (n <= 1)
+        return genCost(s, g);
+    const double r = Balance::kGens[g].costGrowth;
+    return genCost(s, g) * (std::pow(r, n) - 1.0) / (r - 1.0);
+}
+
 double managerCost(int g)
 {
     return Balance::kGens[g].managerCost;
 }
 
-double tapValue(const GameState& s)
+double genMultiplier(int count)
 {
-    return (Balance::kTapBase + Balance::kTapPerGate * s.gens[Balance::Gate].count) * s.bonusMult;
+    double m = 1.0;
+    for (int i = 0; i < Balance::kMilestoneCount; ++i) {
+        if (count >= Balance::kMilestones[i])
+            m *= 2.0;
+    }
+    return m;
 }
 
-double baseRps(const GameState& s, bool activeSession)
+int nextMilestoneAt(int count)
+{
+    for (int i = 0; i < Balance::kMilestoneCount; ++i) {
+        if (count < Balance::kMilestones[i])
+            return Balance::kMilestones[i];
+    }
+    return 0;
+}
+
+double creatureMult(const GameState& s)
+{
+    return 1.0 + Balance::kCreaturePer * s.creatures.size();
+}
+
+double genRate(const GameState& s, int g)
+{
+    return s.gens[g].count * Balance::kGens[g].baseRate
+         * genMultiplier(s.gens[g].count) * s.bonusMult * creatureMult(s);
+}
+
+double cyclePayout(const GameState& s, int g)
+{
+    return genRate(s, g) * (Balance::kGens[g].cycleMs / 1000.0);
+}
+
+double tapValue(const GameState& s)
+{
+    return (Balance::kTapBase + Balance::kTapPerGate * s.gens[Balance::Gate].count)
+         * s.bonusMult * creatureMult(s);
+}
+
+double baseRps(const GameState& s)
 {
     double sum = 0.0;
     for (int g = 0; g < Balance::GenCount; ++g) {
-        if (activeSession || s.gens[g].manager)
-            sum += s.gens[g].count * Balance::kGens[g].baseRate;
+        if (s.gens[g].manager)
+            sum += genRate(s, g);
     }
-    return sum * s.bonusMult;
+    return sum;
 }
 
-double totalRps(const GameState& s, bool activeSession)
+double totalRps(const GameState& s)
 {
     const double f = s.opened ? Balance::kFoundation : 0.0;
-    return baseRps(s, activeSession) * (1.0 + f);
+    return baseRps(s) * (1.0 + f);
 }
 
 double soinPerSec(const GameState& s)
@@ -96,7 +151,7 @@ double soinPerSec(const GameState& s)
 
 double sitCost(const GameState& s)
 {
-    const double c = Balance::kSitCostSeconds * totalRps(s, false);
+    const double c = Balance::kSitCostSeconds * totalRps(s);
     return c > Balance::kSitCostMin ? c : Balance::kSitCostMin;
 }
 
@@ -110,11 +165,16 @@ qint64 momentIntervalMs(const GameState& s, quint64 salt)
     int eff = s.buried - s.sat;
     if (eff < 0)
         eff = 0;
-    double interval = Balance::kMomentBaseMs * std::pow(Balance::kMomentDecay, eff);
+    // The very first moment lands within the opening session; later ones are episodic.
+    double interval = (s.buried + s.sat == 0)
+        ? double(Balance::kMomentFirstMs)
+        : Balance::kMomentBaseMs * std::pow(Balance::kMomentDecay, eff);
     // Seeded jitter in [0.75, 1.25) so the cadence never feels like a counter.
     const quint64 roll = Rng::mix(salt, static_cast<quint64>(s.buried + s.sat) + Q_UINT64_C(0x51));
     interval *= 0.75 + (roll % 1000) / 2000.0;
     qint64 ms = static_cast<qint64>(interval);
+    if (s.buried + s.sat == 0)
+        return ms;
     return ms > Balance::kMomentFloorMs ? ms : Balance::kMomentFloorMs;
 }
 
@@ -131,17 +191,23 @@ void applyEvent(GameState& s, const Event& e, quint64 salt)
     const QJsonObject p = parse(e);
     const qint64 at = static_cast<qint64>(p.value(QLatin1String("at")).toDouble());
 
+    // Matured manual cycles pay out first, at this event's instant, whatever the event is.
+    settleCycles(s, at);
+
     if (e.kind == QLatin1String("tap")) {
         const int n = p.value(QLatin1String("n")).toInt();
         if (n > 0)
             addIncome(s, tapValue(s) * n, kSrcTap);
     } else if (e.kind == QLatin1String("buy")) {
         const int g = p.value(QLatin1String("g")).toInt();
+        int n = p.value(QLatin1String("n")).toInt();
+        if (n <= 0)
+            n = 1;
         if (g >= 0 && g < Balance::GenCount) {
-            const double cost = genCost(s, g);
+            const double cost = bulkCost(s, g, n);
             if (s.recette >= cost) {
                 s.recette -= cost;
-                s.gens[g].count += 1;
+                s.gens[g].count += n;
             }
         }
     } else if (e.kind == QLatin1String("hire")) {
@@ -150,6 +216,13 @@ void applyEvent(GameState& s, const Event& e, quint64 salt)
             && s.recette >= managerCost(g)) {
             s.recette -= managerCost(g);
             s.gens[g].manager = true;
+            s.gens[g].runningUntilMs = 0;   // the manager takes over; no cycle overlap
+        }
+    } else if (e.kind == QLatin1String("run")) {
+        const int g = p.value(QLatin1String("g")).toInt();
+        if (g >= 0 && g < Balance::GenCount && s.gens[g].count > 0 && !s.gens[g].manager
+            && s.gens[g].runningUntilMs == 0) {
+            s.gens[g].runningUntilMs = at + Balance::kGens[g].cycleMs;
         }
     } else if (e.kind == QLatin1String("open")) {
         if (s.epoch == 0 && !s.opened && s.recette >= Balance::kOpeningCost) {
@@ -164,15 +237,14 @@ void applyEvent(GameState& s, const Event& e, quint64 salt)
         }
     } else if (e.kind == QLatin1String("tick")) {
         qint64 ms = static_cast<qint64>(p.value(QLatin1String("ms")).toDouble());
-        const bool active = p.value(QLatin1String("active")).toBool();
         if (ms < 0)
             ms = 0;
         if (ms > Balance::kOfflineCapMs)
             ms = Balance::kOfflineCapMs;
         const double secs = ms / 1000.0;
         for (int g = 0; g < Balance::GenCount; ++g) {
-            if (active || s.gens[g].manager)
-                addIncome(s, s.gens[g].count * Balance::kGens[g].baseRate * s.bonusMult * secs, g);
+            if (s.gens[g].manager)
+                addIncome(s, genRate(s, g) * secs, g);
         }
         addSoin(s, soinPerSec(s) * secs, salt);
     } else if (e.kind == QLatin1String("care")) {

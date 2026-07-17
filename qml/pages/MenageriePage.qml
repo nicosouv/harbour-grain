@@ -40,6 +40,14 @@ Page {
                 font.pixelSize: Theme.fontSizeSmall
                 color: Theme.secondaryColor
             }
+
+            Label {
+                visible: Game.creatures.length > 0
+                x: Theme.horizontalPageMargin
+                text: "+" + Game.creatureBonusPercent.toFixed(1) + " % " + qsTr("to the park")
+                font.pixelSize: Theme.fontSizeSmall
+                color: Theme.secondaryColor
+            }
         }
 
         ViewPlaceholder {

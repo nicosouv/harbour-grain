@@ -12,6 +12,8 @@ Page {
         if (id === "kiosk") return qsTr("The kiosk")
         if (id === "paths") return qsTr("The paths")
         if (id === "aviary") return qsTr("The aviary")
+        if (id === "carousel") return qsTr("The carousel")
+        if (id === "pond") return qsTr("The pond")
         if (id === "opening") return qsTr("The grand opening")
         return id
     }

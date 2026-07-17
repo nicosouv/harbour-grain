@@ -1,5 +1,6 @@
 import QtQuick 2.6
 import Sailfish.Silica 1.0
+import "../components"
 
 Page {
     id: page
@@ -9,6 +10,8 @@ Page {
         if (id === "kiosk") return qsTr("The kiosk")
         if (id === "paths") return qsTr("The paths")
         if (id === "aviary") return qsTr("The aviary")
+        if (id === "carousel") return qsTr("The carousel")
+        if (id === "pond") return qsTr("The pond")
         return id
     }
 
@@ -39,6 +42,15 @@ Page {
 
             PageHeader { title: qsTr("The park") }
 
+            // The park itself: grows with every purchase.
+            ParkView {
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                height: Theme.itemSizeHuge * 1.6
+            }
+
+            Item { width: 1; height: Theme.paddingMedium }
+
             // The ticker: the number the player chose to optimize.
             Label {
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -57,16 +69,54 @@ Page {
             Label {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: Game.fmt(Game.soin) + " " + qsTr("care")
+                      + (Game.bonusPercent > 0
+                         ? "   ·   +" + Game.bonusPercent.toFixed(0) + " % " + qsTr("permanent")
+                         : "")
                 font.pixelSize: Theme.fontSizeExtraSmall
                 color: Theme.secondaryColor
                 opacity: 0.6
             }
-            Label {
-                visible: Game.bonusPercent > 0
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "+" + Game.bonusPercent.toFixed(0) + " % " + qsTr("permanent")
-                font.pixelSize: Theme.fontSizeExtraSmall
-                color: Theme.secondaryColor
+
+            // Epoch recette over time: one honest chart on the front page.
+            Canvas {
+                id: chart
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                height: Theme.itemSizeLarge
+
+                onPaint: {
+                    var ctx = getContext("2d")
+                    ctx.clearRect(0, 0, width, height)
+                    var pts = Game.history()
+                    if (pts.length < 2) return
+                    var minV = pts[0].v, maxV = pts[0].v
+                    var minT = pts[0].t, maxT = pts[pts.length - 1].t
+                    for (var i = 0; i < pts.length; i++) {
+                        if (pts[i].v < minV) minV = pts[i].v
+                        if (pts[i].v > maxV) maxV = pts[i].v
+                    }
+                    if (maxV - minV < 1e-9 || maxT - minT <= 0) return
+                    ctx.beginPath()
+                    for (i = 0; i < pts.length; i++) {
+                        var px = (pts[i].t - minT) / (maxT - minT) * width
+                        var py = height - 2 - (pts[i].v - minV) / (maxV - minV) * (height - 4)
+                        if (i === 0) ctx.moveTo(px, py)
+                        else ctx.lineTo(px, py)
+                    }
+                    ctx.strokeStyle = Theme.highlightColor
+                    ctx.lineWidth = 2
+                    ctx.stroke()
+                    ctx.lineTo(width, height)
+                    ctx.lineTo(0, height)
+                    ctx.closePath()
+                    ctx.fillStyle = Theme.rgba(Theme.highlightColor, 0.12)
+                    ctx.fill()
+                }
+
+                Connections {
+                    target: Game
+                    onStateChanged: chart.requestPaint()
+                }
             }
 
             Item { width: 1; height: Theme.paddingLarge }
@@ -87,12 +137,23 @@ Page {
                     font.pixelSize: Theme.fontSizeLarge
                 }
 
+                Label {
+                    id: floatLabel
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: 0
+                    opacity: 0
+                    font.pixelSize: Theme.fontSizeMedium
+                    color: Theme.highlightColor
+                }
+
                 MouseArea {
                     id: tapArea
                     anchors.fill: parent
                     onClicked: {
                         Game.tap()
+                        floatLabel.text = "+" + Game.fmt(Game.tapPower)
                         pulse.restart()
+                        floatAnim.restart()
                     }
                 }
 
@@ -100,6 +161,19 @@ Page {
                     id: pulse
                     NumberAnimation { target: tapZone; property: "scale"; to: 0.97; duration: 40 }
                     NumberAnimation { target: tapZone; property: "scale"; to: 1.0; duration: 80 }
+                }
+
+                ParallelAnimation {
+                    id: floatAnim
+                    NumberAnimation {
+                        target: floatLabel; property: "y"
+                        from: tapZone.height / 2 - Theme.paddingLarge; to: -Theme.paddingLarge * 2
+                        duration: 500
+                    }
+                    SequentialAnimation {
+                        NumberAnimation { target: floatLabel; property: "opacity"; to: 1; duration: 80 }
+                        NumberAnimation { target: floatLabel; property: "opacity"; to: 0; duration: 420 }
+                    }
                 }
             }
 
@@ -142,7 +216,30 @@ Page {
                 }
             }
 
-            SectionHeader { text: qsTr("Attractions") }
+            // Attractions header with the buy-amount toggle.
+            Item {
+                width: parent.width
+                height: Theme.itemSizeSmall
+
+                SectionHeader {
+                    text: qsTr("Attractions")
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width - buyToggle.width - 2 * Theme.horizontalPageMargin
+                }
+
+                Button {
+                    id: buyToggle
+                    anchors {
+                        right: parent.right
+                        rightMargin: Theme.horizontalPageMargin
+                        verticalCenter: parent.verticalCenter
+                    }
+                    width: Theme.itemSizeExtraLarge
+                    text: "×" + Game.buyAmount
+                    onClicked: Game.buyAmount = Game.buyAmount === 1 ? 10
+                             : Game.buyAmount === 10 ? 100 : 1
+                }
+            }
 
             Repeater {
                 model: Game.generators
@@ -150,11 +247,23 @@ Page {
                 Item {
                     width: column.width
                     height: Theme.itemSizeMedium
+                    opacity: modelData.locked ? 0.4 : 1.0
+
+                    // Tap the row to run a manual cycle (managers make it continuous).
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.rightMargin: parent.width * 0.35
+                        enabled: !modelData.locked && !modelData.manager && modelData.count > 0
+                        onClicked: {
+                            if (modelData.runningUntil <= 0)
+                                Game.run(modelData.index)
+                        }
+                    }
 
                     Column {
                         x: Theme.horizontalPageMargin
                         anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width * 0.45
+                        width: parent.width * 0.5
 
                         Label {
                             text: genName(modelData.id)
@@ -163,12 +272,32 @@ Page {
                             width: parent.width
                         }
                         Label {
-                            text: modelData.count > 0
-                                  ? "+" + Game.fmt(modelData.rate) + "/s"
-                                    + (modelData.manager ? "  ·  " + qsTr("managed") : "")
-                                  : ""
+                            text: {
+                                if (modelData.count <= 0) return ""
+                                var s
+                                if (modelData.manager)
+                                    s = "+" + Game.fmt(modelData.rate) + "/s · " + qsTr("managed")
+                                else
+                                    s = "▶ " + Game.fmt(modelData.payout)
+                                      + " / " + (modelData.cycleMs / 1000) + " s"
+                                if (modelData.nextAt > 0)
+                                    s += " · ×2 @ " + modelData.nextAt
+                                return s
+                            }
                             font.pixelSize: Theme.fontSizeExtraSmall
                             color: Theme.secondaryColor
+                        }
+
+                        // Cycle progress.
+                        Rectangle {
+                            visible: !modelData.manager && modelData.runningUntil > 0
+                            width: {
+                                if (modelData.runningUntil <= 0) return 0
+                                var p = 1 - (modelData.runningUntil - Game.nowMs) / modelData.cycleMs
+                                return parent.width * Math.max(0, Math.min(1, p))
+                            }
+                            height: Math.max(2, Theme.paddingSmall / 2)
+                            color: Theme.highlightColor
                         }
                     }
 

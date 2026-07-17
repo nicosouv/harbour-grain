@@ -30,7 +30,13 @@ GrainController::GrainController(QObject* parent)
     m_store.bootstrap(entropy != 0 ? entropy : Q_UINT64_C(0xC0FFEE));
     m_salt = m_store.installSalt();
 
-    m_state = fold(m_store.events(), m_salt);
+    // Fold the whole log, capturing the chart history along the way.
+    m_state = GameState();
+    const QVector<Event> events = m_store.events();
+    for (int i = 0; i < events.size(); ++i) {
+        applyEvent(m_state, events.at(i), m_salt);
+        recordHistory(events.at(i).tsMs);
+    }
 
     // Offline progress: one coarse tick covering the whole absence, managers only.
     const qint64 now = m_clock.nowMs();
@@ -78,12 +84,29 @@ void GrainController::setLanguage(const QString& code)
     emit languageChanged();
 }
 
+void GrainController::recordHistory(qint64 at)
+{
+    if (m_state.epoch != m_historyEpoch) {
+        m_history.clear();
+        m_historyEpoch = m_state.epoch;
+    }
+    m_history.append(qMakePair(at, m_state.epochRecette));
+    // Bound memory: decimate when the series grows too long (keeps the shape).
+    if (m_history.size() > 4000) {
+        QVector<QPair<qint64, double> > slim;
+        slim.reserve(m_history.size() / 2 + 1);
+        for (int i = 0; i < m_history.size(); i += 2)
+            slim.append(m_history.at(i));
+        m_history = slim;
+    }
+}
+
 double GrainController::liveAccrualRecette() const
 {
     const qint64 now = m_clock.nowMs();
     const double secs = (now - m_lastFlushMs) / 1000.0;
     const double f = m_state.opened ? Balance::kFoundation : 0.0;
-    return totalRps(m_state, true) * (secs > 0 ? secs : 0)
+    return totalRps(m_state) * (secs > 0 ? secs : 0)
          + tapValue(m_state) * (1.0 + f) * m_pendingTaps;
 }
 
@@ -96,29 +119,64 @@ double GrainController::liveAccrualSoin() const
 
 double GrainController::recette() const { return m_state.recette + liveAccrualRecette(); }
 double GrainController::soin() const { return m_state.soin + liveAccrualSoin(); }
-double GrainController::recettePerSec() const { return totalRps(m_state, true); }
+double GrainController::recettePerSec() const { return totalRps(m_state); }
 double GrainController::soinPerSecQ() const { return grain::soinPerSec(m_state); }
+double GrainController::nowMsQ() const { return static_cast<double>(m_clock.nowMs()); }
+
+double GrainController::tapPower() const
+{
+    const double f = m_state.opened ? Balance::kFoundation : 0.0;
+    return tapValue(m_state) * (1.0 + f);
+}
+
 int GrainController::epoch() const { return m_state.epoch; }
 
 QVariantList GrainController::generators() const
 {
     QVariantList out;
     for (int g = 0; g < Balance::GenCount; ++g) {
+        // Progressive reveal: a generator shows once the previous one is owned; the first
+        // still-locked row is shown dimmed as the next goal, later ones stay hidden.
+        const bool unlocked = g == 0 || m_state.gens[g - 1].count > 0 || m_state.gens[g].count > 0;
         QVariantMap row;
         row.insert(QStringLiteral("index"), g);
         row.insert(QStringLiteral("id"), QLatin1String(Balance::kGens[g].id));
         row.insert(QStringLiteral("count"), m_state.gens[g].count);
-        row.insert(QStringLiteral("rate"),
-                   m_state.gens[g].count * Balance::kGens[g].baseRate * m_state.bonusMult);
-        row.insert(QStringLiteral("cost"), genCost(m_state, g));
+        row.insert(QStringLiteral("rate"), genRate(m_state, g));
+        row.insert(QStringLiteral("cost"), bulkCost(m_state, g, m_buyAmount));
         row.insert(QStringLiteral("manager"), m_state.gens[g].manager);
         row.insert(QStringLiteral("managerCost"), managerCost(g));
+        row.insert(QStringLiteral("payout"), cyclePayout(m_state, g));
+        row.insert(QStringLiteral("cycleMs"), static_cast<double>(Balance::kGens[g].cycleMs));
+        row.insert(QStringLiteral("runningUntil"),
+                   static_cast<double>(m_state.gens[g].runningUntilMs));
+        row.insert(QStringLiteral("nextAt"), nextMilestoneAt(m_state.gens[g].count));
+        row.insert(QStringLiteral("locked"), !unlocked);
         out.append(row);
+        if (!unlocked)
+            break;   // show one locked goal, hide the rest
     }
     return out;
 }
 
 QStringList GrainController::creatures() const { return m_state.creatures; }
+
+double GrainController::creatureBonusPercent() const
+{
+    return (creatureMult(m_state) - 1.0) * 100.0;
+}
+
+int GrainController::buyAmount() const { return m_buyAmount; }
+
+void GrainController::setBuyAmount(int n)
+{
+    if (n != 1 && n != 10 && n != 100)
+        n = 1;
+    if (n == m_buyAmount)
+        return;
+    m_buyAmount = n;
+    emit stateChanged();
+}
 
 bool GrainController::openingVisible() const
 {
@@ -131,7 +189,7 @@ double GrainController::openingCost() const { return Balance::kOpeningCost; }
 
 bool GrainController::refoundVisible() const
 {
-    return m_state.epochRecette >= Balance::kPrestigeUnlock;
+    return refoundGain() >= 1;
 }
 
 int GrainController::refoundGain() const
@@ -167,6 +225,9 @@ bool GrainController::lingerReady() const
     return m_clock.nowMs() - m_state.lastLingerMs >= Balance::kCareCooldownMs;
 }
 
+double GrainController::careFeedValue() const { return Balance::kCareFeed; }
+double GrainController::careLingerValue() const { return Balance::kCareLinger; }
+
 void GrainController::appendAndApply(const QString& kind, const QString& payload)
 {
     const qint64 now = m_clock.nowMs();
@@ -180,6 +241,14 @@ void GrainController::appendAndApply(const QString& kind, const QString& payload
     e.kind = kind;
     e.payload = payload;
     applyEvent(m_state, e, m_salt);
+    recordHistory(now);
+}
+
+void GrainController::appendSimple(const QString& kind, qint64 at)
+{
+    QJsonObject p;
+    p.insert(QLatin1String("at"), static_cast<double>(at));
+    appendAndApply(kind, QString::fromUtf8(QJsonDocument(p).toJson(QJsonDocument::Compact)));
 }
 
 void GrainController::flushNow()
@@ -209,7 +278,15 @@ void GrainController::flushNow()
 
 void GrainController::onUiTick()
 {
-    if (m_clock.nowMs() - m_lastFlushMs >= Balance::kFlushMs)
+    const qint64 now = m_clock.nowMs();
+    bool matured = false;
+    for (int g = 0; g < Balance::GenCount; ++g) {
+        if (m_state.gens[g].runningUntilMs > 0 && now >= m_state.gens[g].runningUntilMs) {
+            matured = true;
+            break;
+        }
+    }
+    if (matured || now - m_lastFlushMs >= Balance::kFlushMs)
         flushNow();
     emit liveChanged();
 }
@@ -225,10 +302,11 @@ void GrainController::buy(int g)
     if (g < 0 || g >= Balance::GenCount)
         return;
     flushNow();
-    if (m_state.recette < genCost(m_state, g))
+    if (m_state.recette < bulkCost(m_state, g, m_buyAmount))
         return;
     QJsonObject p;
     p.insert(QLatin1String("g"), g);
+    p.insert(QLatin1String("n"), m_buyAmount);
     p.insert(QLatin1String("at"), static_cast<double>(m_clock.nowMs()));
     appendAndApply(QLatin1String("buy"),
                    QString::fromUtf8(QJsonDocument(p).toJson(QJsonDocument::Compact)));
@@ -253,15 +331,29 @@ void GrainController::hire(int g)
     emit liveChanged();
 }
 
+void GrainController::run(int g)
+{
+    if (g < 0 || g >= Balance::GenCount)
+        return;
+    flushNow();
+    if (m_state.gens[g].count <= 0 || m_state.gens[g].manager
+        || m_state.gens[g].runningUntilMs != 0)
+        return;
+    QJsonObject p;
+    p.insert(QLatin1String("g"), g);
+    p.insert(QLatin1String("at"), static_cast<double>(m_clock.nowMs()));
+    appendAndApply(QLatin1String("run"),
+                   QString::fromUtf8(QJsonDocument(p).toJson(QJsonDocument::Compact)));
+    emit stateChanged();
+    emit liveChanged();
+}
+
 void GrainController::inaugurate()
 {
     flushNow();
     if (!(m_state.epoch == 0 && !m_state.opened && m_state.recette >= Balance::kOpeningCost))
         return;
-    QJsonObject p;
-    p.insert(QLatin1String("at"), static_cast<double>(m_clock.nowMs()));
-    appendAndApply(QLatin1String("open"),
-                   QString::fromUtf8(QJsonDocument(p).toJson(QJsonDocument::Compact)));
+    appendSimple(QLatin1String("open"), m_clock.nowMs());
     emit stateChanged();
     emit liveChanged();
 }
@@ -285,10 +377,7 @@ void GrainController::bury()
     if (!momentActive())
         return;
     flushNow();
-    QJsonObject p;
-    p.insert(QLatin1String("at"), static_cast<double>(m_clock.nowMs()));
-    appendAndApply(QLatin1String("bury"),
-                   QString::fromUtf8(QJsonDocument(p).toJson(QJsonDocument::Compact)));
+    appendSimple(QLatin1String("bury"), m_clock.nowMs());
     emit stateChanged();
     emit liveChanged();
 }
@@ -298,10 +387,7 @@ void GrainController::sit()
     if (!momentActive())
         return;
     flushNow();
-    QJsonObject p;
-    p.insert(QLatin1String("at"), static_cast<double>(m_clock.nowMs()));
-    appendAndApply(QLatin1String("sit"),
-                   QString::fromUtf8(QJsonDocument(p).toJson(QJsonDocument::Compact)));
+    appendSimple(QLatin1String("sit"), m_clock.nowMs());
     emit stateChanged();
     emit liveChanged();
 }
@@ -311,10 +397,7 @@ void GrainController::refound()
     flushNow();
     if (!refoundVisible())
         return;
-    QJsonObject p;
-    p.insert(QLatin1String("at"), static_cast<double>(m_clock.nowMs()));
-    appendAndApply(QLatin1String("confess"),
-                   QString::fromUtf8(QJsonDocument(p).toJson(QJsonDocument::Compact)));
+    appendSimple(QLatin1String("confess"), m_clock.nowMs());
     emit stateChanged();
     emit liveChanged();
 }
@@ -327,7 +410,6 @@ QVariantList GrainController::breakdown() const
         total += m_state.earnedGens[g];
 
     QVariantList out;
-    const bool active = true;
 
     QVariantMap tapRow;
     tapRow.insert(QStringLiteral("id"), QStringLiteral("tap"));
@@ -337,13 +419,14 @@ QVariantList GrainController::breakdown() const
     out.append(tapRow);
 
     for (int g = 0; g < Balance::GenCount; ++g) {
+        if (m_state.gens[g].count == 0 && m_state.earnedGens[g] <= 0.0)
+            continue;
         QVariantMap row;
         row.insert(QStringLiteral("id"), QLatin1String(Balance::kGens[g].id));
         row.insert(QStringLiteral("total"), m_state.earnedGens[g]);
         row.insert(QStringLiteral("share"), total > 0 ? m_state.earnedGens[g] / total : 0.0);
         row.insert(QStringLiteral("perSec"),
-                   m_state.gens[g].count * Balance::kGens[g].baseRate * m_state.bonusMult
-                       * (active || m_state.gens[g].manager ? 1.0 : 0.0));
+                   m_state.gens[g].manager ? genRate(m_state, g) : 0.0);
         out.append(row);
     }
 
@@ -353,8 +436,30 @@ QVariantList GrainController::breakdown() const
         row.insert(QStringLiteral("total"), m_state.earnedFoundation);
         row.insert(QStringLiteral("share"), total > 0 ? m_state.earnedFoundation / total : 0.0);
         row.insert(QStringLiteral("perSec"),
-                   baseRps(m_state, true) * (m_state.opened ? Balance::kFoundation : 0.0));
+                   baseRps(m_state) * (m_state.opened ? Balance::kFoundation : 0.0));
         out.append(row);
+    }
+    return out;
+}
+
+QVariantList GrainController::history() const
+{
+    QVariantList out;
+    const int n = m_history.size();
+    if (n == 0)
+        return out;
+    const int step = n > 120 ? (n + 119) / 120 : 1;
+    for (int i = 0; i < n; i += step) {
+        QVariantMap pt;
+        pt.insert(QStringLiteral("t"), static_cast<double>(m_history.at(i).first));
+        pt.insert(QStringLiteral("v"), m_history.at(i).second);
+        out.append(pt);
+    }
+    if ((n - 1) % step != 0) {
+        QVariantMap pt;
+        pt.insert(QStringLiteral("t"), static_cast<double>(m_history.at(n - 1).first));
+        pt.insert(QStringLiteral("v"), m_history.at(n - 1).second);
+        out.append(pt);
     }
     return out;
 }
@@ -380,6 +485,8 @@ void GrainController::clearData()
     m_store.clearAll();
     m_state = GameState();
     m_pendingTaps = 0;
+    m_history.clear();
+    m_historyEpoch = 0;
     m_lastFlushMs = m_clock.nowMs();
     emit stateChanged();
     emit liveChanged();

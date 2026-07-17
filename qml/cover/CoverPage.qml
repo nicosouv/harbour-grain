@@ -22,7 +22,11 @@ CoverBackground {
     }
 
     Column {
-        anchors.centerIn: parent
+        anchors {
+            top: parent.top
+            topMargin: Theme.paddingLarge
+            horizontalCenter: parent.horizontalCenter
+        }
         width: parent.width - 2 * Theme.paddingLarge
         spacing: Theme.paddingMedium
 
@@ -59,25 +63,47 @@ CoverBackground {
         }
     }
 
-    // Captions for the two actions when a moment is up (icons alone would be ambiguous).
+    // Feedback when a gesture lands.
+    Label {
+        id: flashLabel
+        anchors.centerIn: parent
+        opacity: 0
+        font.pixelSize: Theme.fontSizeLarge
+        color: Theme.highlightColor
+
+        SequentialAnimation {
+            id: flashAnim
+            NumberAnimation { target: flashLabel; property: "opacity"; to: 1; duration: 120 }
+            PauseAnimation { duration: 700 }
+            NumberAnimation { target: flashLabel; property: "opacity"; to: 0; duration: 500 }
+        }
+
+        function show(text) {
+            flashLabel.text = text
+            flashAnim.restart()
+        }
+    }
+
+    // What the two actions below do right now; dimmed while a gesture rests.
     Row {
-        visible: Game.momentActive
         anchors {
             bottom: parent.bottom
-            bottomMargin: Theme.itemSizeSmall
+            bottomMargin: Theme.itemSizeSmall + Theme.paddingSmall
             horizontalCenter: parent.horizontalCenter
         }
         spacing: Theme.paddingLarge * 2
 
         Label {
-            text: qsTr("Bury it")
+            text: Game.momentActive ? qsTr("Bury it") : qsTr("Feed")
             font.pixelSize: Theme.fontSizeTiny
             color: Theme.secondaryColor
+            opacity: Game.momentActive || Game.feedReady ? 1.0 : 0.35
         }
         Label {
-            text: qsTr("Sit a while")
+            text: Game.momentActive ? qsTr("Sit a while") : qsTr("Linger")
             font.pixelSize: Theme.fontSizeTiny
             color: Theme.secondaryColor
+            opacity: Game.momentActive || Game.lingerReady ? 1.0 : 0.35
         }
     }
 
@@ -88,10 +114,12 @@ CoverBackground {
             iconSource: Game.momentActive ? "image://theme/icon-cover-cancel"
                                           : "image://theme/icon-cover-new"
             onTriggered: {
-                if (Game.momentActive)
+                if (Game.momentActive) {
                     Game.bury()
-                else if (Game.feedReady)
+                } else if (Game.feedReady) {
                     Game.care("feed")
+                    flashLabel.show("+" + Game.careFeedValue + " " + qsTr("care"))
+                }
             }
         }
 
@@ -99,10 +127,12 @@ CoverBackground {
             iconSource: Game.momentActive ? "image://theme/icon-cover-pause"
                                           : "image://theme/icon-cover-refresh"
             onTriggered: {
-                if (Game.momentActive)
+                if (Game.momentActive) {
                     Game.sit()
-                else if (Game.lingerReady)
+                } else if (Game.lingerReady) {
                     Game.care("linger")
+                    flashLabel.show("+" + Game.careLingerValue + " " + qsTr("care"))
+                }
             }
         }
     }

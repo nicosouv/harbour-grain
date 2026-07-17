@@ -11,10 +11,16 @@ namespace grain {
 
 // Derived quantities, all pure. These are the formulas the whole game runs on.
 double genCost(const GameState& s, int g);          // next-unit cost (exponential wall)
+double bulkCost(const GameState& s, int g, int n);  // cost of the next n units (geometric sum)
 double managerCost(int g);
+double genMultiplier(int count);                    // x2 at each owned-count milestone
+int    nextMilestoneAt(int count);                  // next milestone count, 0 if past the last
+double creatureMult(const GameState& s);            // small bonus from the menagerie's residents
+double genRate(const GameState& s, int g);          // full per-second output of a generator
+double cyclePayout(const GameState& s, int g);      // one manual cycle's payout (pre-foundation)
 double tapValue(const GameState& s);                // base recette per tap (pre-foundation)
-double baseRps(const GameState& s, bool activeSession); // summed base rate; managers only when idle
-double totalRps(const GameState& s, bool activeSession); // baseRps with foundation applied
+double baseRps(const GameState& s);                 // summed managed flow (unmanaged runs cycles)
+double totalRps(const GameState& s);                // baseRps with foundation applied
 double soinPerSec(const GameState& s);
 double sitCost(const GameState& s);
 double spawnThreshold(int index);                   // cumulative soin needed for creature #index
@@ -24,7 +30,7 @@ qint64 momentIntervalMs(const GameState& s, quint64 salt); // cover-moment caden
 bool momentDue(const GameState& s, quint64 salt, qint64 nowMs);
 
 // Fold one event into the state (in place). Unaffordable/invalid events degrade to no-ops so a
-// replayed log can never diverge.
+// replayed log can never diverge. Matured manual cycles are settled first, at the event's instant.
 void applyEvent(GameState& s, const Event& e, quint64 salt);
 
 // Fold a whole log.

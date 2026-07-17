@@ -9,8 +9,9 @@
 namespace grain {
 
 struct GenState {
-    int  count = 0;
-    bool manager = false;
+    int    count = 0;
+    bool   manager = false;
+    qint64 runningUntilMs = 0;   // manual cycle in flight; pays out when an event passes this instant
 };
 
 struct GameState {

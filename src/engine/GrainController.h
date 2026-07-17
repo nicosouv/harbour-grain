@@ -6,9 +6,11 @@
 #define GRAIN_GRAINCONTROLLER_H
 
 #include <QObject>
+#include <QPair>
 #include <QSettings>
 #include <QTimer>
 #include <QVariantList>
+#include <QVector>
 #include "EventStore.h"
 #include "GameState.h"
 #include "Clock.h"
@@ -26,10 +28,14 @@ class GrainController : public QObject
     Q_PROPERTY(double soin READ soin NOTIFY liveChanged)
     Q_PROPERTY(double recettePerSec READ recettePerSec NOTIFY stateChanged)
     Q_PROPERTY(double soinPerSec READ soinPerSecQ NOTIFY stateChanged)
+    Q_PROPERTY(double nowMs READ nowMsQ NOTIFY liveChanged)
+    Q_PROPERTY(double tapPower READ tapPower NOTIFY stateChanged)
 
     Q_PROPERTY(int epoch READ epoch NOTIFY stateChanged)
     Q_PROPERTY(QVariantList generators READ generators NOTIFY stateChanged)
     Q_PROPERTY(QStringList creatures READ creatures NOTIFY stateChanged)
+    Q_PROPERTY(double creatureBonusPercent READ creatureBonusPercent NOTIFY stateChanged)
+    Q_PROPERTY(int buyAmount READ buyAmount WRITE setBuyAmount NOTIFY stateChanged)
 
     Q_PROPERTY(bool openingVisible READ openingVisible NOTIFY stateChanged)
     Q_PROPERTY(bool openingDone READ openingDone NOTIFY stateChanged)
@@ -45,6 +51,8 @@ class GrainController : public QObject
     Q_PROPERTY(double sitCostNow READ sitCostNow NOTIFY stateChanged)
     Q_PROPERTY(bool feedReady READ feedReady NOTIFY liveChanged)
     Q_PROPERTY(bool lingerReady READ lingerReady NOTIFY liveChanged)
+    Q_PROPERTY(double careFeedValue READ careFeedValue CONSTANT)
+    Q_PROPERTY(double careLingerValue READ careLingerValue CONSTANT)
 
 public:
     explicit GrainController(QObject* parent = nullptr);
@@ -58,9 +66,14 @@ public:
     double soin() const;
     double recettePerSec() const;
     double soinPerSecQ() const;
+    double nowMsQ() const;
+    double tapPower() const;
     int epoch() const;
     QVariantList generators() const;
     QStringList creatures() const;
+    double creatureBonusPercent() const;
+    int buyAmount() const;
+    void setBuyAmount(int n);
 
     bool openingVisible() const;
     bool openingDone() const;
@@ -75,11 +88,14 @@ public:
     double sitCostNow() const;
     bool feedReady() const;
     bool lingerReady() const;
+    double careFeedValue() const;
+    double careLingerValue() const;
 
     // Player actions. Each flushes pending accrual first, then appends exactly one event.
     Q_INVOKABLE void tap();
-    Q_INVOKABLE void buy(int g);
+    Q_INVOKABLE void buy(int g);          // buys `buyAmount` units, all-or-nothing
     Q_INVOKABLE void hire(int g);
+    Q_INVOKABLE void run(int g);          // start a manual production cycle
     Q_INVOKABLE void inaugurate();
     Q_INVOKABLE void care(const QString& kind);   // "feed" | "linger"
     Q_INVOKABLE void bury();
@@ -91,6 +107,9 @@ public:
 
     // Income breakdown rows: { id, total, share, perSec }.
     Q_INVOKABLE QVariantList breakdown() const;
+
+    // Epoch recette over time, downsampled for the chart: [{ t, v }].
+    Q_INVOKABLE QVariantList history() const;
 
     // Short human formatting for big numbers ("12,340", "1.24 M").
     Q_INVOKABLE QString fmt(double value) const;
@@ -105,6 +124,8 @@ signals:
 
 private:
     void appendAndApply(const QString& kind, const QString& payload);
+    void appendSimple(const QString& kind, qint64 at);           // {at}-only payload
+    void recordHistory(qint64 at);
     double liveAccrualRecette() const;   // un-persisted production since the last tick event
     double liveAccrualSoin() const;
     void onUiTick();
@@ -117,7 +138,11 @@ private:
 
     qint64 m_lastFlushMs = 0; // instant the projection is up to date with (last tick event)
     int    m_pendingTaps = 0;
+    int    m_buyAmount = 1;
     QTimer m_uiTimer;
+
+    QVector<QPair<qint64, double> > m_history;  // (instant, epochRecette) for the chart
+    int m_historyEpoch = 0;
 };
 
 } // namespace grain

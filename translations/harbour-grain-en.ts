@@ -20,6 +20,14 @@
         <translation>The aviary</translation>
     </message>
     <message>
+        <source>The carousel</source>
+        <translation>The carousel</translation>
+    </message>
+    <message>
+        <source>The pond</source>
+        <translation>The pond</translation>
+    </message>
+    <message>
         <source>Settings</source>
         <translation>Settings</translation>
     </message>
@@ -99,6 +107,14 @@
         <translation>The aviary</translation>
     </message>
     <message>
+        <source>The carousel</source>
+        <translation>The carousel</translation>
+    </message>
+    <message>
+        <source>The pond</source>
+        <translation>The pond</translation>
+    </message>
+    <message>
         <source>The grand opening</source>
         <translation>The grand opening</translation>
     </message>
@@ -120,6 +136,10 @@
     <message>
         <source>It's quiet here.</source>
         <translation>It's quiet here.</translation>
+    </message>
+    <message>
+        <source>to the park</source>
+        <translation>to the park</translation>
     </message>
 </context>
 <context>
@@ -170,6 +190,18 @@
     <message>
         <source>Sit a while</source>
         <translation>Sit a while</translation>
+    </message>
+    <message>
+        <source>Feed</source>
+        <translation>Feed</translation>
+    </message>
+    <message>
+        <source>Linger</source>
+        <translation>Linger</translation>
+    </message>
+    <message>
+        <source>care</source>
+        <translation>care</translation>
     </message>
 </context>
 </TS>
