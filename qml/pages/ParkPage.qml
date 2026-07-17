@@ -143,12 +143,13 @@ Page {
 
             Item { width: 1; height: Theme.paddingMedium }
 
-            // The ticker: the number the player chose to optimize.
+            // The ticker: the number the player chose to optimize. Market-board type.
             Label {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: Game.fmt(Game.recette)
                 font.pixelSize: Theme.fontSizeHuge
                 font.bold: true
+                font.family: "Monospace"
                 color: Theme.highlightColor
             }
             Label {

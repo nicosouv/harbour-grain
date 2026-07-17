@@ -443,6 +443,16 @@ QString GrainController::pendingNarration() const
     if (!gone && m_state.creatures.size() >= 12 && !beatSeen(QStringLiteral("creature12")))
         return QStringLiteral("creature12");
 
+    // Cameos: a cat that watches, and a face that reads faces. Once (or twice) each.
+    if (m_state.opened && m_state.gens[Balance::Aviary].count >= 1
+        && !beatSeen(QStringLiteral("cat1")))
+        return QStringLiteral("cat1");
+    if (m_state.raised >= 7 && !beatSeen(QStringLiteral("nami1")))
+        return QStringLiteral("nami1");
+    if ((m_state.raised >= 10 || m_state.age >= 65)
+        && beatSeen(QStringLiteral("nami1")) && !beatSeen(QStringLiteral("nami2")))
+        return QStringLiteral("nami2");
+
     // The late confession's epilogue, then the absence, then the ambient hum — one per visit.
     if (m_staticArmed && gone) {
         if (m_state.age >= 70) {
@@ -470,16 +480,20 @@ QString GrainController::pendingNarration() const
         const int shown = markedDay == day
             ? m_settings.value(QStringLiteral("narr/scount"), 0).toInt() : 0;
         if (shown < quotaToday) {
+            const bool hasCat = m_state.gens[Balance::Aviary].count > 0;
             if (gone) {
                 const int variant = static_cast<int>(
-                    Rng::mix(m_salt, static_cast<quint64>(day * 7 + shown)) % 8);
+                    Rng::mix(m_salt, static_cast<quint64>(day * 7 + shown))
+                        % (hasCat ? 9 : 8));
                 return QStringLiteral("astatic%1").arg(variant);
             }
-            // Deep pressure pulls from the darker half of the pool.
+            // Deep pressure pulls from the darker half of the pool; the cat drifts through both.
             const int base = pressure >= 6 ? 6 : 0;
-            const int variant = base + static_cast<int>(
-                Rng::mix(m_salt, static_cast<quint64>(day * 7 + shown)) % 6);
-            return QStringLiteral("static%1").arg(variant);
+            const int idx = static_cast<int>(
+                Rng::mix(m_salt, static_cast<quint64>(day * 7 + shown)) % (hasCat ? 7 : 6));
+            if (idx == 6)
+                return pressure >= 6 ? QStringLiteral("static13") : QStringLiteral("static12");
+            return QStringLiteral("static%1").arg(base + idx);
         }
     }
     return QString();

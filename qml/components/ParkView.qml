@@ -206,6 +206,18 @@ Canvas {
                 put(mx + x, my + 2, "#7d786e")
         }
 
+        // The kiosk cat: it sits somewhere with a view, and it watches. Every frame.
+        if ((n["aviary"] || 0) > 0) {
+            _srand(89)
+            var ktx = Math.floor(cols * (0.3 + 0.4 * _rnd()))
+            var kty = Math.floor(rows * (0.5 + 0.3 * _rnd()))
+            put(ktx, kty, "#3a3a42")
+            put(ktx, kty - 1, "#3a3a42")
+            put(ktx + (frame === 0 ? 1 : -1), kty - 1, "#3a3a42")   // an ear, or the tail
+            put(ktx, kty + 0, "#3a3a42")
+            put(ktx, kty, "#4a4a52")
+        }
+
         // Creatures: the quiet side wandering in.
         _srand(67)
         var crs = Game.creatures

@@ -298,6 +298,17 @@
     <message><source>Year %1. Nobody gives a speech this year.</source><translation>An %1. Personne ne fait de discours, cette année.</translation></message>
     <message><source>Year %1. The cake comes from a caterer now.</source><translation>An %1. Le gâteau vient d'un traiteur, maintenant.</translation></message>
     <message><source>Year %1. We clapped anyway.</source><translation>An %1. On a applaudi quand même.</translation></message>
+    <message><source>A cat has settled at the kiosk. It watches everything.</source><translation>Un chat s'est installé à la buvette. Il regarde tout.</translation></message>
+    <message><source>The cat follows me to the office, some nights.</source><translation>Le chat me suit jusqu'au bureau, certains soirs.</translation></message>
+    <message><source>The cat stares at the opening photo.</source><translation>Le chat fixe la photo de l'ouverture.</translation></message>
+    <message><source>The cat sleeps on the bench by the pond now.</source><translation>Le chat dort sur le banc près de l'étang, maintenant.</translation></message>
+    <message><source>A visitor stared at me by the gate. As if she were reading a page.</source><translation>Une visiteuse m'a dévisagé au portail. Comme si elle lisait une page.</translation></message>
+    <message><source>The same visitor, years later. She didn't ask anything.</source><translation>La même visiteuse, des années plus tard. Elle n'a rien demandé.</translation></message>
+    <message><source>Let it watch.</source><translation>Qu'il regarde.</translation></message>
+    <message><source>It's hungry.</source><translation>Il a faim.</translation></message>
+    <message><source>Cats stare at everything.</source><translation>Les chats fixent tout.</translation></message>
+    <message><source>Someone has to.</source><translation>Quelqu'un doit bien.</translation></message>
+    <message><source>Professional habit.</source><translation>Question de métier.</translation></message>
     <message><source>Let it turn.</source><translation>Laisse tourner.</translation></message>
     <message><source>He believes it.</source><translation>Il y croit, lui.</translation></message>
     <message><source>Everything.</source><translation>Tout.</translation></message>

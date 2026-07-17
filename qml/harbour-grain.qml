@@ -77,6 +77,12 @@ ApplicationWindow {
         if (key === "epi3") return qsTr("Someone threw a coin in the pond.")
         if (key === "epi4") return qsTr("The gate creaks. I leave it be.")
         if (key === "epi5") return qsTr("Someone asked if I would do it all again.")
+        if (key === "cat1") return qsTr("A cat has settled at the kiosk. It watches everything.")
+        if (key === "static12") return qsTr("The cat follows me to the office, some nights.")
+        if (key === "static13") return qsTr("The cat stares at the opening photo.")
+        if (key === "astatic8") return qsTr("The cat sleeps on the bench by the pond now.")
+        if (key === "nami1") return qsTr("A visitor stared at me by the gate. As if she were reading a page.")
+        if (key === "nami2") return qsTr("The same visitor, years later. She didn't ask anything.")
         if (key.indexOf("astatic") === 0) {
             var av = parseInt(key.substring(7), 10)
             if (av === 0) return qsTr("She didn't answer. She won't.")
@@ -224,6 +230,12 @@ ApplicationWindow {
         if (key === "epi3") return qsTr("A wish.")
         if (key === "epi4") return qsTr("Leave it.")
         if (key === "epi5") return "…"
+        if (key === "cat1") return qsTr("Let it watch.")
+        if (key === "static12") return qsTr("It's hungry.")
+        if (key === "static13") return qsTr("Cats stare at everything.")
+        if (key === "astatic8") return qsTr("Someone has to.")
+        if (key === "nami1") return qsTr("Professional habit.")
+        if (key === "nami2") return qsTr("Good.")
         if (key.indexOf("astatic") === 0) {
             var av = parseInt(key.substring(7), 10)
             if (av === 0) return qsTr("I know.")
@@ -313,7 +325,8 @@ ApplicationWindow {
             return
         var key = Game.pendingNarration
         if (key !== "")
-            narrator.show(narrationText(key), narrationButton(key))
+            narrator.show(narrationText(key), narrationButton(key),
+                          key.indexOf("epi") === 0)
     }
 
     initialPage: Component { ParkPage { } }
@@ -351,13 +364,17 @@ ApplicationWindow {
         property real t: 0
         property string line: ""
         property string buttonLine: ""
+        // The epilogue arrives on a clean signal: no interference, for the first time.
+        property bool clean: false
 
-        function show(text, btn) {
+        function show(text, btn, cleanSignal) {
             line = text
             buttonLine = btn
+            clean = cleanSignal === true
             t = 0
             visible = true
-            glitchAnim.restart()
+            if (!clean)
+                glitchAnim.restart()
             armTimer.restart()
         }
 
@@ -376,7 +393,7 @@ ApplicationWindow {
         Rectangle {
             anchors.fill: parent
             color: "#10131A"
-            opacity: 0.92
+            opacity: narrator.clean ? 0.7 : 0.92
         }
 
         ShaderEffectSource {
@@ -387,6 +404,7 @@ ApplicationWindow {
         }
 
         ShaderEffect {
+            visible: !narrator.clean
             anchors.fill: parent
             property variant source: pageGrab
             property real time: narrator.t
@@ -425,6 +443,7 @@ ApplicationWindow {
             width: parent.width - 4 * Theme.horizontalPageMargin
 
             Label {
+                visible: !narrator.clean
                 x: 2 + Math.sin(narrator.t * 31.0) * 2
                 y: -1
                 width: parent.width
@@ -436,6 +455,7 @@ ApplicationWindow {
                 opacity: 0.45
             }
             Label {
+                visible: !narrator.clean
                 x: -2 - Math.sin(narrator.t * 27.0) * 2
                 y: 1
                 width: parent.width

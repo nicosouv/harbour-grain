@@ -1,10 +1,11 @@
 import QtQuick 2.6
 import Sailfish.Silica 1.0
+import "../components"
 
 CoverBackground {
     id: cover
 
-    // The place at a time of day: a warm facet, few numbers.
+    // The place at a time of day: the warm facet. The park itself lives here.
     function skyColor() {
         var h = new Date().getHours()
         if (h >= 6 && h < 11) return "#3A4A5A"    // morning
@@ -13,54 +14,61 @@ CoverBackground {
         return "#242A34"                          // night
     }
 
-    Rectangle {
-        anchors.fill: parent
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: skyColor() }
-            GradientStop { position: 1.0; color: "#1A1E26" }
-        }
+    function lightColor() {
+        var h = new Date().getHours()
+        if (h >= 6 && h < 18) return "#E8DFA0"    // the sun
+        return "#D8D8E8"                          // the moon
     }
 
-    Column {
-        anchors {
-            top: parent.top
-            topMargin: Theme.paddingLarge
-            horizontalCenter: parent.horizontalCenter
+    Rectangle {
+        id: sky
+        anchors { top: parent.top; left: parent.left; right: parent.right }
+        height: parent.height * 0.30
+        color: skyColor()
+
+        Rectangle {
+            width: Theme.paddingLarge
+            height: Theme.paddingLarge
+            radius: width / 2
+            x: parent.width * 0.68
+            y: parent.height * 0.30
+            color: lightColor()
+            opacity: 0.9
         }
-        width: parent.width - 2 * Theme.paddingLarge
-        spacing: Theme.paddingMedium
 
         Label {
-            anchors.horizontalCenter: parent.horizontalCenter
+            anchors {
+                left: parent.left
+                leftMargin: Theme.paddingMedium
+                top: parent.top
+                topMargin: Theme.paddingMedium
+            }
             text: "Grain"
             font.pixelSize: Theme.fontSizeSmall
             color: Theme.secondaryColor
         }
+    }
 
-        Flow {
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: parent.width
-            spacing: Theme.paddingSmall
-
-            Repeater {
-                model: Game.creatures
-
-                Rectangle {
-                    width: Theme.paddingLarge
-                    height: Theme.paddingLarge
-                    radius: width / 2
-                    color: app.creatureColor(modelData)
-                    opacity: 0.85
-                }
-            }
+    ParkView {
+        anchors {
+            top: sky.bottom
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
         }
+        age: Game.founderAge
+    }
 
-        Label {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: Game.fmt(Game.recette)
-            font.pixelSize: Theme.fontSizeMedium
-            color: Theme.rgba(Theme.primaryColor, 0.5)
+    Label {
+        anchors {
+            top: sky.bottom
+            topMargin: Theme.paddingSmall
+            horizontalCenter: parent.horizontalCenter
         }
+        text: Game.fmt(Game.recette)
+        font.pixelSize: Theme.fontSizeMedium
+        font.family: "Monospace"
+        color: Theme.rgba(Theme.primaryColor, 0.6)
     }
 
     // Feedback when a gesture lands.
@@ -96,13 +104,13 @@ CoverBackground {
         Label {
             text: Game.momentActive ? qsTr("Bury it") : qsTr("Feed")
             font.pixelSize: Theme.fontSizeTiny
-            color: Theme.secondaryColor
+            color: Theme.primaryColor
             opacity: Game.momentActive || Game.feedReady ? 1.0 : 0.35
         }
         Label {
             text: Game.momentActive ? qsTr("Sit a while") : qsTr("Linger")
             font.pixelSize: Theme.fontSizeTiny
-            color: Theme.secondaryColor
+            color: Theme.primaryColor
             opacity: Game.momentActive || Game.lingerReady ? 1.0 : 0.35
         }
     }

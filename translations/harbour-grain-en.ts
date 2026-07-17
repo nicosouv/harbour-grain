@@ -298,6 +298,17 @@
     <message><source>Year %1. Nobody gives a speech this year.</source><translation>Year %1. Nobody gives a speech this year.</translation></message>
     <message><source>Year %1. The cake comes from a caterer now.</source><translation>Year %1. The cake comes from a caterer now.</translation></message>
     <message><source>Year %1. We clapped anyway.</source><translation>Year %1. We clapped anyway.</translation></message>
+    <message><source>A cat has settled at the kiosk. It watches everything.</source><translation>A cat has settled at the kiosk. It watches everything.</translation></message>
+    <message><source>The cat follows me to the office, some nights.</source><translation>The cat follows me to the office, some nights.</translation></message>
+    <message><source>The cat stares at the opening photo.</source><translation>The cat stares at the opening photo.</translation></message>
+    <message><source>The cat sleeps on the bench by the pond now.</source><translation>The cat sleeps on the bench by the pond now.</translation></message>
+    <message><source>A visitor stared at me by the gate. As if she were reading a page.</source><translation>A visitor stared at me by the gate. As if she were reading a page.</translation></message>
+    <message><source>The same visitor, years later. She didn't ask anything.</source><translation>The same visitor, years later. She didn't ask anything.</translation></message>
+    <message><source>Let it watch.</source><translation>Let it watch.</translation></message>
+    <message><source>It's hungry.</source><translation>It's hungry.</translation></message>
+    <message><source>Cats stare at everything.</source><translation>Cats stare at everything.</translation></message>
+    <message><source>Someone has to.</source><translation>Someone has to.</translation></message>
+    <message><source>Professional habit.</source><translation>Professional habit.</translation></message>
     <message><source>Let it turn.</source><translation>Let it turn.</translation></message>
     <message><source>He believes it.</source><translation>He believes it.</translation></message>
     <message><source>Everything.</source><translation>Everything.</translation></message>
