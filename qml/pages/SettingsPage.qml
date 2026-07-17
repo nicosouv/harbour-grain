@@ -33,6 +33,20 @@ Page {
                 }
             }
 
+            SectionHeader { text: qsTr("Display") }
+
+            TextSwitch {
+                text: qsTr("Reduce visual effects")
+                checked: Game.reduceFx
+                onCheckedChanged: Game.reduceFx = checked
+            }
+
+            TextSwitch {
+                text: qsTr("Notify when a funding round is ready")
+                checked: Game.notifyRaises
+                onCheckedChanged: Game.notifyRaises = checked
+            }
+
             SectionHeader { text: qsTr("Data") }
 
             ListItem {

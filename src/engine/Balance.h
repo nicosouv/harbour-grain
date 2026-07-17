@@ -44,9 +44,12 @@ static const GenDef kGens[GenCount] = {
     { "museum",  8500000000.0, 1.17, 2000000.0, 90000000000.0, 0.0, Q_INT64_C(960000) },
 };
 
-// Owning enough units doubles a generator's output at each of these counts.
+// Owned-count milestones. Production doubles at 25/100/400; the cycle halves at 50/200 —
+// speed is the milestone the player feels.
 static const int kMilestones[] = { 25, 50, 100, 200, 400 };
 static const int kMilestoneCount = 5;
+static const int kProdMilestones[3]  = { 25, 100, 400 };
+static const int kSpeedMilestones[2] = { 50, 200 };
 
 // Manual taps.
 static const double kTapBase    = 1.0;   // recette per tap
@@ -85,8 +88,11 @@ static const double kSitCostSeconds = 900.0;                 // sit costs ~15 mi
 static const double kSitCostMin     = 50.0;
 
 // Refound (prestige): banked permanent bonus, classic idle reset. Offered only when it pays.
-static const double kPrestigePer      = 0.10;     // +10% income per point
-static const double kPrestigePointDiv = 100000.0; // points = floor(sqrt(epochRecette / div))
+// Superlinear points and per-epoch escalation keep every next cycle more promising.
+static const double kPrestigePer        = 0.15;     // +15% income per point
+static const double kPrestigePointDiv   = 100000.0; // points = floor((epochRecette/div)^exp)
+static const double kPrestigeExp        = 0.6;
+static const double kPrestigeEpochBoost = 0.05;     // each life makes a point worth 5% more
 
 // Improvements: one-shot upgrades, one unlocked per resolved cover moment. Labels live in QML;
 // here they are only an index, a price and a small permanent bonus.
@@ -113,8 +119,8 @@ static const qint64 kTierCooldownMs[kTierCount] = {
     Q_INT64_C(64800000), Q_INT64_C(86400000),  Q_INT64_C(86400000),  Q_INT64_C(129600000),
     Q_INT64_C(129600000), Q_INT64_C(172800000), Q_INT64_C(172800000), Q_INT64_C(259200000)
 };
-static const double kCeilingFactor = 2.0;   // earn up to 2x the next raise's bar, then...
-static const double kSoftCapScale  = 0.1;   // ...income shrinks to 10% (never halts)
+static const double kCeilingFactor = 2.0;   // past 2x the next raise's bar, income decays
+                                            // asymptotically (ceiling/(ceiling+excess))
 static const double kRaiseSlowSoin = 30.0;  // slow/honest raise: care granted per tier index+1
 
 // Age advances with actions, never with the wall clock. Rebuilding costs years too.
@@ -135,6 +141,7 @@ static const double kIncidentPerHourFocus = 0.06;  // x (1 - focus)
 static const double kIncidentPerHourOld   = 0.02;  // added past 60
 static const int    kIncidentOldAge       = 60;
 static const double kRepairCostSecs       = 300.0;
+static const qint64 kAutoRepairMs         = Q_INT64_C(7200000);  // a manager fixes it in 2 h, free
 
 // After she is gone, the quiet side barely feeds itself.
 static const double kAbsenceSoinScale = 0.25;

@@ -12,6 +12,7 @@ struct GenState {
     int    count = 0;
     bool   manager = false;
     bool   broken = false;       // out of order until repaired; produces nothing
+    qint64 brokenAtMs = 0;       // when it failed (a manager quietly fixes it after a while)
     qint64 runningUntilMs = 0;   // manual cycle in flight; pays out when an event passes this instant
 };
 

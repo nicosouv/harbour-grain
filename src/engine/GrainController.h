@@ -51,6 +51,15 @@ class GrainController : public QObject
     Q_PROPERTY(double raiseCooldownLeft READ raiseCooldownLeftQ NOTIFY liveChanged)
     Q_PROPERTY(bool plateaued READ plateaued NOTIFY liveChanged)
     Q_PROPERTY(bool decisionsVisible READ decisionsVisible NOTIFY stateChanged)
+
+    // Welcome-back recap (cold start after a real absence).
+    Q_PROPERTY(bool welcomePending READ welcomePending NOTIFY stateChanged)
+    Q_PROPERTY(double welcomeGain READ welcomeGain NOTIFY stateChanged)
+    Q_PROPERTY(double welcomeMs READ welcomeMs NOTIFY stateChanged)
+
+    // Device preferences.
+    Q_PROPERTY(bool reduceFx READ reduceFx WRITE setReduceFx NOTIFY prefsChanged)
+    Q_PROPERTY(bool notifyRaises READ notifyRaises WRITE setNotifyRaises NOTIFY prefsChanged)
     Q_PROPERTY(QVariantList generators READ generators NOTIFY stateChanged)
     Q_PROPERTY(QStringList creatures READ creatures NOTIFY stateChanged)
     Q_PROPERTY(double creatureBonusPercent READ creatureBonusPercent NOTIFY stateChanged)
@@ -108,6 +117,13 @@ public:
     double raiseCooldownLeftQ() const;
     bool plateaued() const;
     bool decisionsVisible() const;
+    bool welcomePending() const;
+    double welcomeGain() const;
+    double welcomeMs() const;
+    bool reduceFx() const;
+    void setReduceFx(bool on);
+    bool notifyRaises() const;
+    void setNotifyRaises(bool on);
     int buyAmount() const;
     void setBuyAmount(int n);
 
@@ -138,6 +154,9 @@ public:
     Q_INVOKABLE void repair(int g);       // fix a broken attraction
     Q_INVOKABLE void ackNarration();      // mark the pending narration as shown
     Q_INVOKABLE void appActivated();      // arms the ambient interference roll
+    Q_INVOKABLE void ackWelcome();        // dismiss the welcome-back recap
+    Q_INVOKABLE bool isMinorBeat(const QString& key) const;  // logbook line, not interference
+    Q_INVOKABLE QStringList journalKeys() const;             // seen logbook lines, in order
     Q_INVOKABLE void inaugurate();
     Q_INVOKABLE void care(const QString& kind);   // "feed" | "linger"
     Q_INVOKABLE void bury();
@@ -172,9 +191,11 @@ signals:
     void stateChanged();   // an event was appended (lists, unlocks, rates)
     void liveChanged();    // timer heartbeat (balances, cooldowns)
     void languageChanged();
+    void prefsChanged();
 
 private:
     void appendAndApply(const QString& kind, const QString& payload);
+    int buyCountFor(int g) const;         // units for the current buy mode (x1/x10/x100/Max/Next)
     void appendSimple(const QString& kind, qint64 at);           // {at}-only payload
     void recordHistory(qint64 at);
     double liveAccrualRecette() const;   // un-persisted production since the last tick event
@@ -189,7 +210,10 @@ private:
 
     qint64 m_lastFlushMs = 0; // instant the projection is up to date with (last tick event)
     int    m_pendingTaps = 0;
-    int    m_buyAmount = 1;
+    int    m_buyAmount = 1;   // 1/10/100, -1 = Max, -2 = Next milestone
+    bool   m_welcomePending = false;
+    double m_welcomeGain = 0.0;
+    qint64 m_welcomeMs = 0;
     QTimer m_uiTimer;
 
     QVector<QPair<qint64, double> > m_history;  // (instant, epochRecette) for the chart

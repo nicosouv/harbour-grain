@@ -201,9 +201,17 @@ void TstGrain::foldMilestoneDoubles()
 {
     QCOMPARE(genMultiplier(24), 1.0);
     QCOMPARE(genMultiplier(25), 2.0);
-    QCOMPARE(genMultiplier(100), 8.0);
+    QCOMPARE(genMultiplier(100), 4.0);
+    QCOMPARE(genMultiplier(400), 8.0);
     QCOMPARE(nextMilestoneAt(0), 25);
     QCOMPARE(nextMilestoneAt(400), 0);
+
+    // Speed milestones halve the manual cycle.
+    GameState speedy;
+    speedy.gens[Balance::Gate].count = 50;
+    QCOMPARE(genCycleMs(speedy, Balance::Gate), Balance::kGens[Balance::Gate].cycleMs / 2);
+    speedy.gens[Balance::Gate].count = 200;
+    QCOMPARE(genCycleMs(speedy, Balance::Gate), Balance::kGens[Balance::Gate].cycleMs / 4);
 
     QVector<Event> v = richStart(100000);
     v.append(buyN(Balance::Gate, 25));
@@ -499,13 +507,14 @@ void TstGrain::foldRaiseAndCeiling()
     QCOMPARE(s2.raised, 2);
     QCOMPARE(s2.raisedFast, 1);
 
-    // Past the ceiling the flow shrinks to a trickle.
+    // Past the ceiling the flow decays asymptotically (never a cliff, never a halt).
     QVector<Event> v3 = richStart(150000);
     v3.append(tap(150000, 3000));
-    const double before = fold(v3, kSalt).recette;
+    const GameState pre = fold(v3, kSalt);
+    QVERIFY(softCapFactor(pre) < 1.0);
     v3.append(tap(100000, 3500));
-    const double gain = fold(v3, kSalt).recette - before;
-    QVERIFY(std::fabs(gain - 100000.0 * Balance::kSoftCapScale) < 1e-6);
+    const double gain = fold(v3, kSalt).recette - pre.recette;
+    QVERIFY(std::fabs(gain - 100000.0 * softCapFactor(pre)) < 1e-6);
 }
 
 void TstGrain::foldMalusAndAbsence()

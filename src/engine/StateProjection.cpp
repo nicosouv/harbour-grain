@@ -24,9 +24,7 @@ void addAge(GameState& s, int years)
 // tier's ceiling the whole flow shrinks (plateau, never a halt). Wealth marks cost years.
 void addIncome(GameState& s, double base, int src)
 {
-    const double ceiling = tierCeiling(s);
-    if (ceiling > 0.0 && s.epochRecette >= ceiling)
-        base *= Balance::kSoftCapScale;
+    base *= softCapFactor(s);
     const double f = s.opened ? Balance::kFoundation : 0.0;
     const double total = base * (1.0 + f);
     s.recette += total;
@@ -56,10 +54,15 @@ void addSoin(GameState& s, double amount, quint64 salt)
     }
 }
 
-// Pay out any manual cycle that has matured by instant `at`.
+// Pay out any manual cycle that has matured by instant `at`, and let managers quietly fix
+// what broke on their watch.
 void settleCycles(GameState& s, qint64 at)
 {
     for (int g = 0; g < Balance::GenCount; ++g) {
+        if (s.gens[g].broken && s.gens[g].manager
+            && at - s.gens[g].brokenAtMs >= Balance::kAutoRepairMs) {
+            s.gens[g].broken = false;
+        }
         if (s.gens[g].runningUntilMs > 0 && at >= s.gens[g].runningUntilMs) {
             addIncome(s, cyclePayout(s, g), g);
             s.gens[g].runningUntilMs = 0;
@@ -95,6 +98,7 @@ void rollIncident(GameState& s, qint64 ms, qint64 at, quint64 salt)
     for (int g = 0; g < Balance::GenCount; ++g) {
         if (s.gens[g].count > 0 && pick-- == 0) {
             s.gens[g].broken = true;
+            s.gens[g].brokenAtMs = at;
             s.gens[g].runningUntilMs = 0;   // a cycle in flight is lost
             s.incidents += 1;
             return;
@@ -137,11 +141,29 @@ double managerCost(int g)
 double genMultiplier(int count)
 {
     double m = 1.0;
-    for (int i = 0; i < Balance::kMilestoneCount; ++i) {
-        if (count >= Balance::kMilestones[i])
+    for (int i = 0; i < 3; ++i) {
+        if (count >= Balance::kProdMilestones[i])
             m *= 2.0;
     }
     return m;
+}
+
+qint64 genCycleMs(const GameState& s, int g)
+{
+    qint64 ms = Balance::kGens[g].cycleMs;
+    for (int i = 0; i < 2; ++i) {
+        if (s.gens[g].count >= Balance::kSpeedMilestones[i])
+            ms /= 2;
+    }
+    return ms;
+}
+
+double softCapFactor(const GameState& s)
+{
+    const double ceiling = tierCeiling(s);
+    if (ceiling <= 0.0 || s.epochRecette <= ceiling)
+        return 1.0;
+    return ceiling / (ceiling + (s.epochRecette - ceiling));
 }
 
 int nextMilestoneAt(int count)
@@ -252,7 +274,7 @@ double cyclePayout(const GameState& s, int g)
 {
     if (s.gens[g].broken)
         return 0.0;
-    return genRate(s, g) * (Balance::kGens[g].cycleMs / 1000.0) * sleepFactor(s);
+    return genRate(s, g) * (genCycleMs(s, g) / 1000.0) * sleepFactor(s);
 }
 
 double tapValue(const GameState& s)
@@ -378,7 +400,7 @@ void applyEvent(GameState& s, const Event& e, quint64 salt)
         const int g = p.value(QLatin1String("g")).toInt();
         if (g >= 0 && g < Balance::GenCount && s.gens[g].count > 0 && !s.gens[g].manager
             && !s.gens[g].broken && s.gens[g].runningUntilMs == 0) {
-            s.gens[g].runningUntilMs = at + Balance::kGens[g].cycleMs;
+            s.gens[g].runningUntilMs = at + genCycleMs(s, g);
         }
     } else if (e.kind == QLatin1String("repair")) {
         const int g = p.value(QLatin1String("g")).toInt();
@@ -459,11 +481,14 @@ void applyEvent(GameState& s, const Event& e, quint64 salt)
             addAge(s, 1);
     } else if (e.kind == QLatin1String("confess")) {
         const int gained = static_cast<int>(
-            std::floor(std::sqrt(s.epochRecette / Balance::kPrestigePointDiv)));
+            std::floor(std::pow(s.epochRecette / Balance::kPrestigePointDiv,
+                                Balance::kPrestigeExp)));
         if (gained > 0)
             s.prestigePoints += gained;
-        s.bonusMult = 1.0 + Balance::kPrestigePer * s.prestigePoints;
         s.epoch += 1;
+        // Each lived life makes a banked point worth a little more.
+        s.bonusMult = 1.0 + Balance::kPrestigePer * s.prestigePoints
+                          * (1.0 + Balance::kPrestigeEpochBoost * s.epoch);
         s.recette = 0.0;
         s.epochRecette = 0.0;
         s.opened = false;

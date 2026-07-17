@@ -41,6 +41,9 @@
     <message><source>Next round in %1</source><translation>Prochaine levée dans %1</translation></message>
     <message><source>out of order</source><translation>en panne</translation></message>
     <message><source>Decisions</source><translation>Décisions</translation></message>
+    <message><source>Logbook</source><translation>Registre</translation></message>
+    <message><source>Max</source><translation>Max</translation></message>
+    <message><source>Next</source><translation>Suivant</translation></message>
     <message><source>Double the maintenance crew</source><translation>Doubler l'équipe d'entretien</translation></message>
     <message><source>Light the paths at night</source><translation>Éclairer les allées la nuit</translation></message>
     <message><source>A bigger office, farther from the gate</source><translation>Un bureau plus grand, plus loin du portail</translation></message>
@@ -95,8 +98,16 @@
     <message><source>Focus</source><translation>Concentration</translation></message>
 </context>
 <context>
+    <name>JournalPage</name>
+    <message><source>Logbook</source><translation>Registre</translation></message>
+    <message><source>Nothing noted yet.</source><translation>Rien à noter pour l'instant.</translation></message>
+</context>
+<context>
     <name>SettingsPage</name>
     <message><source>Settings</source><translation>Réglages</translation></message>
+    <message><source>Display</source><translation>Affichage</translation></message>
+    <message><source>Reduce visual effects</source><translation>Réduire les effets visuels</translation></message>
+    <message><source>Notify when a funding round is ready</source><translation>Me prévenir quand une levée est prête</translation></message>
     <message><source>Language</source><translation>Langue</translation></message>
     <message><source>Takes effect after restarting the app.</source><translation>Prend effet au prochain lancement de l'application.</translation></message>
     <message><source>System default</source><translation>Langue du système</translation></message>
@@ -343,5 +354,10 @@
     <message><source>You're twenty. A plot at the edge of town, a friend who believes in it as much as you do, and enough money to last one summer.</source><translation>Vous avez vingt ans. Un terrain au bord de la ville, une amie qui y croit autant que vous, et de quoi tenir un été.</translation></message>
     <message><source>Make it a place people remember.</source><translation>Faites-en un endroit dont on se souvient.</translation></message>
     <message><source>Open the park</source><translation>Ouvrir le parc</translation></message>
+    <message><source>The next round is ready</source><translation>La prochaine levée est prête</translation></message>
+    <message><source>The park ran without you.</source><translation>Le parc a tourné sans vous.</translation></message>
+    <message><source>Short night.</source><translation>Nuit courte.</translation></message>
+    <message><source>A round is ready.</source><translation>Une levée est prête.</translation></message>
+    <message><source>Back to it.</source><translation>On y retourne.</translation></message>
 </context>
 </TS>

@@ -5,6 +5,22 @@ import "../components"
 Page {
     id: page
 
+    // Odometer: the ticker eases toward the live value instead of jumping.
+    property double shownRecette: Game.recette
+    Behavior on shownRecette { NumberAnimation { duration: 500 } }
+
+    // "In 2 min 30": the planning datum under every price.
+    function etaText(cost) {
+        if (Game.recette >= cost || Game.recettePerSec <= 0)
+            return ""
+        var s = (cost - Game.recette) / Game.recettePerSec
+        if (s > 2592000)
+            return ""
+        if (s >= 3600) return Math.ceil(s / 3600) + " h"
+        if (s >= 60) return Math.ceil(s / 60) + " min"
+        return Math.ceil(s) + " s"
+    }
+
     function echoName(i) {
         if (i === 0) return qsTr("Repaint the gate")
         if (i === 1) return qsTr("Widen the parking lot")
@@ -125,6 +141,10 @@ Page {
                 text: qsTr("Settings")
                 onClicked: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
             }
+            MenuItem {
+                text: qsTr("Logbook")
+                onClicked: pageStack.push(Qt.resolvedUrl("JournalPage.qml"))
+            }
         }
 
         Column {
@@ -146,7 +166,7 @@ Page {
             // The ticker: the number the player chose to optimize. Market-board type.
             Label {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: Game.fmt(Game.recette)
+                text: Game.fmt(page.shownRecette)
                 font.pixelSize: Theme.fontSizeHuge
                 font.bold: true
                 font.family: "Monospace"
@@ -378,9 +398,13 @@ Page {
                         verticalCenter: parent.verticalCenter
                     }
                     width: Theme.itemSizeExtraLarge
-                    text: "×" + Game.buyAmount
+                    text: Game.buyAmount === -1 ? qsTr("Max")
+                        : Game.buyAmount === -2 ? qsTr("Next")
+                        : "×" + Game.buyAmount
                     onClicked: Game.buyAmount = Game.buyAmount === 1 ? 10
-                             : Game.buyAmount === 10 ? 100 : 1
+                             : Game.buyAmount === 10 ? 100
+                             : Game.buyAmount === 100 ? -1
+                             : Game.buyAmount === -1 ? -2 : 1
                 }
             }
 
@@ -450,17 +474,49 @@ Page {
                         }
                     }
 
-                    Button {
+                    Column {
                         anchors {
                             right: managerBtn.visible ? managerBtn.left : parent.right
                             rightMargin: managerBtn.visible ? Theme.paddingSmall
                                                             : Theme.horizontalPageMargin
                             verticalCenter: parent.verticalCenter
                         }
-                        preferredWidth: Theme.buttonWidthSmall
-                        text: Game.fmt(modelData.cost)
-                        enabled: Game.recette >= modelData.cost
-                        onClicked: Game.buy(modelData.index)
+                        spacing: 2
+
+                        Button {
+                            id: buyBtn
+                            preferredWidth: Theme.buttonWidthSmall
+                            text: (modelData.buyN > 1 ? "×" + modelData.buyN + " " : "")
+                                  + Game.fmt(modelData.cost)
+                            enabled: Game.recette >= modelData.cost
+                            onClicked: Game.buy(modelData.index)
+                        }
+
+                        // Affordability gauge: dead time becomes a promise.
+                        Rectangle {
+                            width: buyBtn.width
+                            height: 3
+                            radius: 1
+                            color: Theme.rgba(Theme.highlightColor, 0.2)
+                            visible: Game.recette < modelData.cost
+
+                            Rectangle {
+                                width: parent.width
+                                       * Math.min(1, Game.recette / Math.max(1, modelData.cost))
+                                height: parent.height
+                                radius: 1
+                                color: Theme.highlightColor
+                            }
+                        }
+
+                        Label {
+                            width: buyBtn.width
+                            horizontalAlignment: Text.AlignHCenter
+                            text: etaText(modelData.cost)
+                            visible: text !== ""
+                            font.pixelSize: Theme.fontSizeTiny
+                            color: Theme.secondaryColor
+                        }
                     }
 
                     IconButton {

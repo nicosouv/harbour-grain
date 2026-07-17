@@ -30,6 +30,7 @@ DISTFILES += qml/harbour-grain.qml \
     qml/cover/CoverPage.qml \
     qml/components/ParkView.qml \
     qml/pages/ParkPage.qml \
+    qml/pages/JournalPage.qml \
     qml/pages/SettingsPage.qml \
     rpm/harbour-grain.spec \
     harbour-grain.desktop

@@ -13,8 +13,10 @@ namespace grain {
 double genCost(const GameState& s, int g);          // next-unit cost (exponential wall)
 double bulkCost(const GameState& s, int g, int n);  // cost of the next n units (geometric sum)
 double managerCost(int g);
-double genMultiplier(int count);                    // x2 at each owned-count milestone
+double genMultiplier(int count);                    // x2 at production milestones (25/100/400)
+qint64 genCycleMs(const GameState& s, int g);       // manual cycle length; halves at 50/200
 int    nextMilestoneAt(int count);                  // next milestone count, 0 if past the last
+double softCapFactor(const GameState& s);           // income factor past the tier ceiling (<=1)
 double creatureMult(const GameState& s);            // small bonus from the menagerie's residents
 double echoMult(const GameState& s);                // small bonus from owned improvements
 bool   echoOwned(const GameState& s, int i);

@@ -1,5 +1,6 @@
 import QtQuick 2.6
 import Sailfish.Silica 1.0
+import Nemo.Notifications 1.0
 import "pages"
 import "cover"
 
@@ -320,13 +321,26 @@ ApplicationWindow {
         return qsTr("Onward.")
     }
 
+    property double lastGlitchMs: 0
+
     function maybeNarrate() {
         if (narrator.visible || !Game.arrived)
             return
         var key = Game.pendingNarration
-        if (key !== "")
-            narrator.show(narrationText(key), narrationButton(key),
-                          key.indexOf("epi") === 0)
+        if (key === "")
+            return
+        // Logbook lines land silently in the journal; only real beats interfere.
+        if (Game.isMinorBeat(key)) {
+            Game.ackNarration()
+            return
+        }
+        // Never two interferences back to back: the glitch stays rare, so it stays heavy.
+        var now = Date.now()
+        if (lastGlitchMs > 0 && now - lastGlitchMs < 120000)
+            return
+        lastGlitchMs = now
+        narrator.show(narrationText(key), narrationButton(key),
+                      key.indexOf("epi") === 0 || Game.reduceFx)
     }
 
     initialPage: Component { ParkPage { } }
@@ -351,6 +365,22 @@ ApplicationWindow {
     Connections {
         target: Game
         onStateChanged: app.maybeNarrate()
+        onLiveChanged: {
+            app.maybeNarrate()
+            if (Game.notifyRaises && !Qt.application.active && Game.raiseReady
+                && app.lastNotifiedTier !== Game.raiseTier) {
+                app.lastNotifiedTier = Game.raiseTier
+                raiseNotif.publish()
+            }
+        }
+    }
+
+    property int lastNotifiedTier: -1
+
+    Notification {
+        id: raiseNotif
+        appName: "Grain"
+        summary: qsTr("The next round is ready")
     }
 
     // Interference: the page underneath glitches while a stray thought passes. Dismissed only
@@ -492,6 +522,74 @@ ApplicationWindow {
             enabled: !armTimer.running
             opacity: armTimer.running ? 0.3 : 1.0
             onClicked: narrator.dismiss()
+        }
+    }
+
+    // Coming back after a real absence: the park reports, quietly.
+    Rectangle {
+        id: welcome
+        anchors.fill: parent
+        z: 9400
+        color: "#161A20"
+        opacity: 0.97
+        visible: Game.welcomePending && Game.arrived
+
+        function fmtDur(ms) {
+            var d = Math.floor(ms / 86400000)
+            var h = Math.floor((ms % 86400000) / 3600000)
+            var m = Math.floor((ms % 3600000) / 60000)
+            if (d >= 1) return d + " j " + h + " h"
+            if (h >= 1) return h + " h " + m + " min"
+            return m + " min"
+        }
+
+        MouseArea { anchors.fill: parent }
+
+        Column {
+            anchors.centerIn: parent
+            width: parent.width - 4 * Theme.horizontalPageMargin
+            spacing: Theme.paddingLarge
+
+            Label {
+                width: parent.width
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+                text: qsTr("The park ran without you.")
+                font.pixelSize: Theme.fontSizeLarge
+                color: Theme.highlightColor
+            }
+
+            Label {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: welcome.fmtDur(Game.welcomeMs) + "   ·   +" + Game.fmt(Game.welcomeGain)
+                font.pixelSize: Theme.fontSizeMedium
+                font.family: "Monospace"
+                color: Theme.primaryColor
+            }
+
+            Label {
+                visible: Game.sleepPercent < 95
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("Short night.") + "  " + Game.sleepPercent.toFixed(0) + " %"
+                font.pixelSize: Theme.fontSizeSmall
+                color: Theme.secondaryColor
+            }
+
+            Label {
+                visible: Game.raiseReady
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("A round is ready.")
+                font.pixelSize: Theme.fontSizeSmall
+                color: Theme.secondaryHighlightColor
+            }
+
+            Item { width: 1; height: Theme.paddingMedium }
+
+            Button {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("Back to it.")
+                onClicked: Game.ackWelcome()
+            }
         }
     }
 

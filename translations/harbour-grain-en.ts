@@ -41,6 +41,9 @@
     <message><source>Next round in %1</source><translation>Next round in %1</translation></message>
     <message><source>out of order</source><translation>out of order</translation></message>
     <message><source>Decisions</source><translation>Decisions</translation></message>
+    <message><source>Logbook</source><translation>Logbook</translation></message>
+    <message><source>Max</source><translation>Max</translation></message>
+    <message><source>Next</source><translation>Next</translation></message>
     <message><source>Double the maintenance crew</source><translation>Double the maintenance crew</translation></message>
     <message><source>Light the paths at night</source><translation>Light the paths at night</translation></message>
     <message><source>A bigger office, farther from the gate</source><translation>A bigger office, farther from the gate</translation></message>
@@ -95,8 +98,16 @@
     <message><source>Focus</source><translation>Focus</translation></message>
 </context>
 <context>
+    <name>JournalPage</name>
+    <message><source>Logbook</source><translation>Logbook</translation></message>
+    <message><source>Nothing noted yet.</source><translation>Nothing noted yet.</translation></message>
+</context>
+<context>
     <name>SettingsPage</name>
     <message><source>Settings</source><translation>Settings</translation></message>
+    <message><source>Display</source><translation>Display</translation></message>
+    <message><source>Reduce visual effects</source><translation>Reduce visual effects</translation></message>
+    <message><source>Notify when a funding round is ready</source><translation>Notify when a funding round is ready</translation></message>
     <message><source>Language</source><translation>Language</translation></message>
     <message><source>Takes effect after restarting the app.</source><translation>Takes effect after restarting the app.</translation></message>
     <message><source>System default</source><translation>System default</translation></message>
@@ -343,5 +354,10 @@
     <message><source>You're twenty. A plot at the edge of town, a friend who believes in it as much as you do, and enough money to last one summer.</source><translation>You're twenty. A plot at the edge of town, a friend who believes in it as much as you do, and enough money to last one summer.</translation></message>
     <message><source>Make it a place people remember.</source><translation>Make it a place people remember.</translation></message>
     <message><source>Open the park</source><translation>Open the park</translation></message>
+    <message><source>The next round is ready</source><translation>The next round is ready</translation></message>
+    <message><source>The park ran without you.</source><translation>The park ran without you.</translation></message>
+    <message><source>Short night.</source><translation>Short night.</translation></message>
+    <message><source>A round is ready.</source><translation>A round is ready.</translation></message>
+    <message><source>Back to it.</source><translation>Back to it.</translation></message>
 </context>
 </TS>

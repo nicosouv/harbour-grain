@@ -47,18 +47,23 @@ GrainController::GrainController(QObject* parent)
         }
     }
 
-    // Offline progress: one coarse tick covering the whole absence, managers only.
+    // Offline progress: one coarse tick covering the whole absence, managers only. A real
+    // absence earns a recap on top.
     const qint64 now = m_clock.nowMs();
     if (m_state.lastSeenMs > 0 && now - m_state.lastSeenMs > 5000) {
         qint64 ms = now - m_state.lastSeenMs;
         if (ms > Balance::kOfflineCapMs)
             ms = Balance::kOfflineCapMs;
+        const double before = m_state.recette;
         QJsonObject p;
         p.insert(QLatin1String("ms"), static_cast<double>(ms));
         p.insert(QLatin1String("active"), false);
         p.insert(QLatin1String("at"), static_cast<double>(now));
         appendAndApply(QLatin1String("tick"),
                        QString::fromUtf8(QJsonDocument(p).toJson(QJsonDocument::Compact)));
+        m_welcomeGain = m_state.recette - before;
+        m_welcomeMs = ms;
+        m_welcomePending = ms > Q_INT64_C(1800000);
     }
     m_lastFlushMs = now;
 
@@ -127,10 +132,7 @@ double GrainController::liveAccrualRecette() const
                    + tapValue(m_state) * (1.0 + f) * m_pendingTaps;
     // Mirror the fold's tier plateau, so the live number never runs ahead of what a flush
     // will actually materialize.
-    const double ceiling = tierCeiling(m_state);
-    if (ceiling > 0.0 && m_state.epochRecette >= ceiling)
-        accrual *= Balance::kSoftCapScale;
-    return accrual;
+    return accrual * softCapFactor(m_state);
 }
 
 double GrainController::liveAccrualSoin() const
@@ -166,13 +168,14 @@ QVariantList GrainController::generators() const
         row.insert(QStringLiteral("id"), QLatin1String(Balance::kGens[g].id));
         row.insert(QStringLiteral("count"), m_state.gens[g].count);
         row.insert(QStringLiteral("rate"), genRate(m_state, g));
-        row.insert(QStringLiteral("cost"), bulkCost(m_state, g, m_buyAmount));
+        row.insert(QStringLiteral("buyN"), buyCountFor(g));
+        row.insert(QStringLiteral("cost"), bulkCost(m_state, g, buyCountFor(g)));
         row.insert(QStringLiteral("manager"), m_state.gens[g].manager);
         row.insert(QStringLiteral("managerCost"), managerCost(g));
         row.insert(QStringLiteral("payout"), cyclePayout(m_state, g));
         row.insert(QStringLiteral("broken"), m_state.gens[g].broken);
         row.insert(QStringLiteral("repairCost"), repairCost(m_state, g));
-        row.insert(QStringLiteral("cycleMs"), static_cast<double>(Balance::kGens[g].cycleMs));
+        row.insert(QStringLiteral("cycleMs"), static_cast<double>(genCycleMs(m_state, g)));
         row.insert(QStringLiteral("runningUntil"),
                    static_cast<double>(m_state.gens[g].runningUntilMs));
         row.insert(QStringLiteral("nextAt"), nextMilestoneAt(m_state.gens[g].count));
@@ -554,12 +557,94 @@ int GrainController::buyAmount() const { return m_buyAmount; }
 
 void GrainController::setBuyAmount(int n)
 {
-    if (n != 1 && n != 10 && n != 100)
+    if (n != 1 && n != 10 && n != 100 && n != -1 && n != -2)
         n = 1;
     if (n == m_buyAmount)
         return;
     m_buyAmount = n;
     emit stateChanged();
+}
+
+int GrainController::buyCountFor(int g) const
+{
+    if (m_buyAmount > 0)
+        return m_buyAmount;
+    if (m_buyAmount == -2) {
+        const int next = nextMilestoneAt(m_state.gens[g].count);
+        if (next > m_state.gens[g].count)
+            return next - m_state.gens[g].count;
+    }
+    // Max: the largest affordable batch (closed-form inverse of the geometric cost sum).
+    const double r = Balance::kGens[g].costGrowth;
+    const double first = genCost(m_state, g);
+    if (m_state.recette < first)
+        return 1;
+    const int n = static_cast<int>(
+        std::floor(std::log(m_state.recette * (r - 1.0) / first + 1.0) / std::log(r)));
+    return n > 1 ? n : 1;
+}
+
+bool GrainController::welcomePending() const { return m_welcomePending; }
+double GrainController::welcomeGain() const { return m_welcomeGain; }
+double GrainController::welcomeMs() const { return static_cast<double>(m_welcomeMs); }
+
+void GrainController::ackWelcome()
+{
+    if (!m_welcomePending)
+        return;
+    m_welcomePending = false;
+    emit stateChanged();
+}
+
+bool GrainController::reduceFx() const
+{
+    return m_settings.value(QStringLiteral("reduceFx"), false).toBool();
+}
+
+void GrainController::setReduceFx(bool on)
+{
+    m_settings.setValue(QStringLiteral("reduceFx"), on);
+    emit prefsChanged();
+}
+
+bool GrainController::notifyRaises() const
+{
+    return m_settings.value(QStringLiteral("notifyRaises"), false).toBool();
+}
+
+void GrainController::setNotifyRaises(bool on)
+{
+    m_settings.setValue(QStringLiteral("notifyRaises"), on);
+    emit prefsChanged();
+}
+
+namespace {
+// Beats that read as a park logbook line, not an interference.
+const char* const kMinorBeats[] = {
+    "first_gate", "first_kiosk", "first_paths", "first_pond", "first_wheel",
+    "first_greenhouse", "first_milestone", "milestone50", "milestone100",
+    "milestone200", "milestone400", "creature5"
+};
+const int kMinorBeatCount = 12;
+}
+
+bool GrainController::isMinorBeat(const QString& key) const
+{
+    for (int i = 0; i < kMinorBeatCount; ++i) {
+        if (key == QLatin1String(kMinorBeats[i]))
+            return true;
+    }
+    return false;
+}
+
+QStringList GrainController::journalKeys() const
+{
+    QStringList out;
+    for (int i = 0; i < kMinorBeatCount; ++i) {
+        if (beatSeen(QLatin1String(kMinorBeats[i])))
+            out.append(QLatin1String(kMinorBeats[i]));
+    }
+    return out;
 }
 
 bool GrainController::openingVisible() const
@@ -693,11 +778,12 @@ void GrainController::buy(int g)
     if (g < 0 || g >= Balance::GenCount)
         return;
     flushNow();
-    if (m_state.recette < bulkCost(m_state, g, m_buyAmount))
+    const int n = buyCountFor(g);
+    if (n < 1 || m_state.recette < bulkCost(m_state, g, n))
         return;
     QJsonObject p;
     p.insert(QLatin1String("g"), g);
-    p.insert(QLatin1String("n"), m_buyAmount);
+    p.insert(QLatin1String("n"), n);
     p.insert(QLatin1String("at"), static_cast<double>(m_clock.nowMs()));
     appendAndApply(QLatin1String("buy"),
                    QString::fromUtf8(QJsonDocument(p).toJson(QJsonDocument::Compact)));
