@@ -1,6 +1,6 @@
 Name:       harbour-grain
 Summary:    A quiet, minimalist idle game for Sailfish OS
-Version:    0.6.0
+Version:    0.6.1
 Release:    1
 Group:      Applications/Amusements
 License:    MIT

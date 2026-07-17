@@ -123,8 +123,14 @@ double GrainController::liveAccrualRecette() const
     const qint64 now = m_clock.nowMs();
     const double secs = (now - m_lastFlushMs) / 1000.0;
     const double f = m_state.opened ? Balance::kFoundation : 0.0;
-    return totalRps(m_state) * (secs > 0 ? secs : 0)
-         + tapValue(m_state) * (1.0 + f) * m_pendingTaps;
+    double accrual = totalRps(m_state) * (secs > 0 ? secs : 0)
+                   + tapValue(m_state) * (1.0 + f) * m_pendingTaps;
+    // Mirror the fold's tier plateau, so the live number never runs ahead of what a flush
+    // will actually materialize.
+    const double ceiling = tierCeiling(m_state);
+    if (ceiling > 0.0 && m_state.epochRecette >= ceiling)
+        accrual *= Balance::kSoftCapScale;
+    return accrual;
 }
 
 double GrainController::liveAccrualSoin() const
