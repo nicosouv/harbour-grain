@@ -29,6 +29,24 @@ Page {
         return id
     }
 
+    function sourceName(id) {
+        if (id === "tap") return qsTr("By hand")
+        if (id === "opening") return qsTr("The grand opening")
+        return genName(id)
+    }
+
+    function sourceColor(id) {
+        if (id === "tap") return "#9A9A9A"
+        if (id === "gate") return "#6D4C33"
+        if (id === "kiosk") return "#B3552E"
+        if (id === "paths") return "#8A795C"
+        if (id === "aviary") return "#5D7D8A"
+        if (id === "carousel") return "#A03A4A"
+        if (id === "pond") return "#3A6A8A"
+        if (id === "opening") return "#E0B23A"
+        return "#777777"
+    }
+
     RemorsePopup { id: remorse }
 
     SilicaFlickable {
@@ -39,14 +57,6 @@ Page {
             MenuItem {
                 text: qsTr("Settings")
                 onClicked: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
-            }
-            MenuItem {
-                text: qsTr("The menagerie")
-                onClicked: pageStack.push(Qt.resolvedUrl("MenageriePage.qml"))
-            }
-            MenuItem {
-                text: qsTr("Breakdown")
-                onClicked: pageStack.push(Qt.resolvedUrl("BreakdownPage.qml"))
             }
         }
 
@@ -61,6 +71,7 @@ Page {
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * Theme.horizontalPageMargin
                 height: Theme.itemSizeHuge * 1.6
+                age: Game.founderAge
             }
 
             Item { width: 1; height: Theme.paddingMedium }
@@ -377,6 +388,179 @@ Page {
                               : Game.fmt(modelData.cost)
                         font.pixelSize: Theme.fontSizeSmall
                         color: modelData.owned ? Theme.secondaryColor : Theme.highlightColor
+                    }
+                }
+            }
+
+            // Income sources: the donut, one chart among the others.
+            SectionHeader {
+                visible: Game.donutVisible
+                text: qsTr("Sources")
+            }
+
+            Item {
+                id: donutCard
+                visible: Game.donutVisible
+                width: parent.width
+                height: donut.height
+
+                property var rows: Game.breakdown()
+
+                Connections {
+                    target: Game
+                    onStateChanged: {
+                        donutCard.rows = Game.breakdown()
+                        donut.requestPaint()
+                    }
+                }
+
+                Canvas {
+                    id: donut
+                    x: Theme.horizontalPageMargin
+                    width: Theme.itemSizeHuge * 1.4
+                    height: Theme.itemSizeHuge * 1.4
+
+                    onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.clearRect(0, 0, width, height)
+                        var rows = donutCard.rows
+                        if (!rows || rows.length === 0) return
+                        var cx = width / 2, cy = height / 2
+                        var radius = width / 2 - Theme.paddingSmall
+                        var ring = radius * 0.42
+                        var a = -Math.PI / 2
+                        for (var i = 0; i < rows.length; i++) {
+                            var span = rows[i].share * 2 * Math.PI
+                            if (span <= 0) continue
+                            ctx.beginPath()
+                            ctx.arc(cx, cy, radius - ring / 2, a, a + span, false)
+                            ctx.lineWidth = ring
+                            ctx.strokeStyle = sourceColor(rows[i].id)
+                            ctx.stroke()
+                            a += span
+                        }
+                    }
+                }
+
+                Column {
+                    anchors {
+                        left: donut.right
+                        leftMargin: Theme.paddingLarge
+                        right: parent.right
+                        rightMargin: Theme.horizontalPageMargin
+                        verticalCenter: donut.verticalCenter
+                    }
+
+                    Repeater {
+                        model: donutCard.rows
+
+                        Row {
+                            spacing: Theme.paddingSmall
+
+                            Rectangle {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: Theme.paddingMedium
+                                height: Theme.paddingMedium
+                                radius: 2
+                                color: sourceColor(modelData.id)
+                            }
+                            Label {
+                                text: sourceName(modelData.id) + "  "
+                                      + (modelData.share * 100).toFixed(1) + " %"
+                                font.pixelSize: Theme.fontSizeExtraSmall
+                                color: Theme.secondaryColor
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Park life: the quiet side, in plain sight.
+            SectionHeader {
+                visible: Game.creatures.length > 0 || Game.soin >= 6
+                text: qsTr("Park life")
+            }
+
+            Item {
+                visible: Game.creatures.length > 0 || Game.soin >= 6
+                width: parent.width
+                height: lifeCol.height
+
+                Column {
+                    id: lifeCol
+                    x: Theme.horizontalPageMargin
+                    width: parent.width - 2 * Theme.horizontalPageMargin
+
+                    Flow {
+                        width: parent.width
+                        spacing: Theme.paddingSmall
+
+                        Repeater {
+                            model: Game.creatures
+
+                            Rectangle {
+                                width: Theme.paddingLarge
+                                height: Theme.paddingLarge
+                                radius: width / 2
+                                color: app.creatureColor(modelData)
+                                opacity: 0.9
+                            }
+                        }
+                    }
+
+                    Label {
+                        text: Game.creatures.length + " " + qsTr("animals")
+                              + "  ·  +" + Game.creatureBonusPercent.toFixed(1) + " %"
+                              + "  ·  " + Game.fmt(Game.soin) + " " + qsTr("care")
+                        font.pixelSize: Theme.fontSizeExtraSmall
+                        color: Theme.secondaryColor
+                    }
+                }
+            }
+
+            // The founder.
+            SectionHeader {
+                visible: Game.founderVisible
+                text: qsTr("The founder")
+            }
+
+            Column {
+                visible: Game.founderVisible
+                width: parent.width
+
+                DetailItem { label: qsTr("Age"); value: "" + Game.founderAge }
+                DetailItem { label: qsTr("Sleep"); value: Game.sleepPercent.toFixed(0) + " %" }
+                DetailItem { label: qsTr("Focus"); value: Game.focusPercent.toFixed(0) + " %" }
+
+                Canvas {
+                    id: sleepChart
+                    x: Theme.horizontalPageMargin
+                    width: column.width - 2 * Theme.horizontalPageMargin
+                    height: Theme.itemSizeLarge
+                    visible: Game.sleepHistory().length >= 2
+
+                    onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.clearRect(0, 0, width, height)
+                        var pts = Game.sleepHistory()
+                        if (pts.length < 2) return
+                        var minT = pts[0].t, maxT = pts[pts.length - 1].t
+                        if (maxT - minT <= 0) return
+                        ctx.beginPath()
+                        for (var i = 0; i < pts.length; i++) {
+                            var px = (pts[i].t - minT) / (maxT - minT) * width
+                            var py = height - 2 - (pts[i].v - 0.3) / 0.7 * (height - 4)
+                            if (i === 0) ctx.moveTo(px, py)
+                            else ctx.lineTo(px, py)
+                        }
+                        ctx.strokeStyle = Theme.secondaryHighlightColor
+                        ctx.lineWidth = 2
+                        ctx.stroke()
+                    }
+
+                    Connections {
+                        target: Game
+                        onStateChanged: sleepChart.requestPaint()
                     }
                 }
             }

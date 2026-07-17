@@ -7,6 +7,19 @@ Canvas {
     id: view
 
     property int frame: 0
+    property int age: 20
+
+    // The place takes on a patina as the founder ages.
+    function groundColor() {
+        if (age < 35) return "#22301f"
+        if (age < 55) return "#262f1e"
+        return "#2a2c20"
+    }
+    function alleyColor() {
+        if (age < 35) return "#8a795c"
+        if (age < 55) return "#827257"
+        return "#776a52"
+    }
 
     // Seeded LCG so the layout is stable between paints (and playful between installs).
     property var _seed: 0
@@ -60,7 +73,7 @@ Canvas {
         }
 
         // Ground: mottled grass.
-        ctx.fillStyle = "#22301f"
+        ctx.fillStyle = groundColor()
         ctx.fillRect(0, 0, width, height)
         _srand(7)
         for (var y = 0; y < rows; y++)
@@ -73,8 +86,8 @@ Canvas {
         // Main alley up from the gate.
         var cx = Math.floor(cols / 2)
         for (y = Math.floor(rows * 0.35); y < rows; y++) {
-            put(cx, y, "#8a795c")
-            put(cx + 1, y, "#8a795c")
+            put(cx, y, alleyColor())
+            put(cx + 1, y, alleyColor())
         }
 
         // Paths: each visible unit adds a side alley.

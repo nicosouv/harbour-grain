@@ -228,21 +228,133 @@ int GrainController::founderAgeQ() const
     return founderAge(m_state, m_clock.nowMs());
 }
 
+bool GrainController::beatSeen(const QString& key) const
+{
+    if (m_settings.value(QStringLiteral("narr/b_") + key).toBool())
+        return true;
+    // Pre-0.4 installs tracked open/refound/echo differently; honour those marks.
+    if (key == QStringLiteral("open%1").arg(m_state.epoch))
+        return m_settings.value(QStringLiteral("narr/open_%1").arg(m_state.epoch)).toBool();
+    if (key == QStringLiteral("refound%1").arg(m_state.epoch))
+        return m_settings.value(QStringLiteral("narr/refound_%1").arg(m_state.epoch)).toBool();
+    if (key.startsWith(QLatin1String("echo")))
+        return key.mid(4).toInt()
+            <= m_settings.value(QStringLiteral("narr/level"), 0).toInt();
+    return false;
+}
+
 QString GrainController::pendingNarration() const
 {
     if (!m_state.arrived)
         return QString();
-    if (m_state.epoch > 0
-        && !m_settings.value(QStringLiteral("narr/refound_%1").arg(m_state.epoch)).toBool())
-        return QStringLiteral("refound");
-    if (m_state.opened
-        && !m_settings.value(QStringLiteral("narr/open_%1").arg(m_state.epoch)).toBool())
-        return QStringLiteral("open");
-    const int level = m_settings.value(QStringLiteral("narr/level"), 0).toInt();
+    const qint64 now = m_clock.nowMs();
+
+    if (m_state.epoch > 0 && !beatSeen(QStringLiteral("refound%1").arg(m_state.epoch))) {
+        if (m_state.epoch == 1)
+            return QStringLiteral("refound");
+        return m_state.epoch == 2 ? QStringLiteral("refound2") : QStringLiteral("refound3");
+    }
+    if (m_state.opened && !beatSeen(QStringLiteral("open%1").arg(m_state.epoch)))
+        return m_state.epoch == 0 ? QStringLiteral("open") : QStringLiteral("openAgain");
+
+    // The cover choices themselves, first times and repetitions.
+    if (m_state.buried >= 1 && !beatSeen(QStringLiteral("bury1")))
+        return QStringLiteral("bury1");
+    if (m_state.sat >= 1 && !beatSeen(QStringLiteral("sit1")))
+        return QStringLiteral("sit1");
+    if (m_state.buried >= 5 && !beatSeen(QStringLiteral("bury5")))
+        return QStringLiteral("bury5");
+    if (m_state.sat >= 5 && !beatSeen(QStringLiteral("sit5")))
+        return QStringLiteral("sit5");
+
+    // Decade birthdays, oldest missed first.
+    const int age = founderAge(m_state, now);
+    for (int decade = 30; decade <= 70; decade += 10) {
+        if (age >= decade && !beatSeen(QStringLiteral("birthday%1").arg(decade)))
+            return QStringLiteral("birthday%1").arg(decade);
+    }
+
+    // The park's anniversary: one beat per year of its life (a year is a real day).
+    const int year = parkYear();
+    if (year >= 1 && !beatSeen(QStringLiteral("anniv%1").arg(year)))
+        return QStringLiteral("anniv%1").arg(year);
+
+    // One improvement echo per resolved cover moment.
     const int resolved = momentsResolved(m_state) < Balance::kEchoCount
         ? momentsResolved(m_state) : Balance::kEchoCount;
-    if (resolved > level)
-        return QStringLiteral("echo%1").arg(level + 1);
+    for (int n = 1; n <= resolved; ++n) {
+        if (!beatSeen(QStringLiteral("echo%1").arg(n)))
+            return QStringLiteral("echo%1").arg(n);
+    }
+
+    // Wealth marks (epoch recette).
+    static const double kWealth[] = { 1e4, 1e5, 1e6, 1e7, 1e8, 1e9 };
+    static const char* const kWealthKey[] = {
+        "wealth10k", "wealth100k", "wealth1m", "wealth10m", "wealth100m", "wealth1b"
+    };
+    for (int w = 0; w < 6; ++w) {
+        if (m_state.epochRecette >= kWealth[w]
+            && !beatSeen(QLatin1String(kWealthKey[w])))
+            return QLatin1String(kWealthKey[w]);
+    }
+
+    // Count milestones, whichever attraction crosses them first.
+    static const char* const kMilestoneKey[] = {
+        "first_milestone", "milestone50", "milestone100", "milestone200", "milestone400"
+    };
+    for (int m = 0; m < Balance::kMilestoneCount; ++m) {
+        for (int g = 0; g < Balance::GenCount; ++g) {
+            if (m_state.gens[g].count >= Balance::kMilestones[m]
+                && !beatSeen(QLatin1String(kMilestoneKey[m])))
+                return QLatin1String(kMilestoneKey[m]);
+        }
+    }
+
+    // Progression firsts, and each hand-over to a manager.
+    for (int g = 0; g < Balance::GenCount; ++g) {
+        if (m_state.gens[g].count > 0) {
+            const QString key = QStringLiteral("first_") + QLatin1String(Balance::kGens[g].id);
+            if (!beatSeen(key))
+                return key;
+        }
+    }
+    int managers = 0;
+    for (int g = 0; g < Balance::GenCount; ++g) {
+        if (m_state.gens[g].manager) {
+            ++managers;
+            const QString key = QStringLiteral("manager_") + QLatin1String(Balance::kGens[g].id);
+            if (!beatSeen(key))
+                return key;
+        }
+    }
+    if (managers >= 4 && !beatSeen(QStringLiteral("hands_off")))
+        return QStringLiteral("hands_off");
+    if (donutVisible() && !beatSeen(QStringLiteral("donut")))
+        return QStringLiteral("donut");
+
+    if (m_state.creatures.size() >= 1 && !beatSeen(QStringLiteral("creature1")))
+        return QStringLiteral("creature1");
+    if (m_state.creatures.size() >= 5 && !beatSeen(QStringLiteral("creature5")))
+        return QStringLiteral("creature5");
+    if (m_state.creatures.size() >= 12 && !beatSeen(QStringLiteral("creature12")))
+        return QStringLiteral("creature12");
+
+    // Ambient interference: repeatable, once per activation, quota rising with net buries.
+    const int pressure = m_state.buried - m_state.sat;
+    if (m_staticArmed && pressure >= 3) {
+        const qint64 day = now / Q_INT64_C(86400000);
+        const int quotaToday = pressure - 2 < 3 ? pressure - 2 : 3;
+        const qint64 markedDay = m_settings.value(QStringLiteral("narr/sday"), 0).toLongLong();
+        const int shown = markedDay == day
+            ? m_settings.value(QStringLiteral("narr/scount"), 0).toInt() : 0;
+        if (shown < quotaToday) {
+            // Deep pressure pulls from the darker half of the pool.
+            const int base = pressure >= 6 ? 6 : 0;
+            const int variant = base + static_cast<int>(
+                Rng::mix(m_salt, static_cast<quint64>(day * 7 + shown)) % 6);
+            return QStringLiteral("static%1").arg(variant);
+        }
+    }
     return QString();
 }
 
@@ -251,15 +363,47 @@ void GrainController::ackNarration()
     const QString pending = pendingNarration();
     if (pending.isEmpty())
         return;
-    if (pending == QLatin1String("refound")) {
-        m_settings.setValue(QStringLiteral("narr/refound_%1").arg(m_state.epoch), true);
-    } else if (pending == QLatin1String("open")) {
-        m_settings.setValue(QStringLiteral("narr/open_%1").arg(m_state.epoch), true);
+    if (pending.startsWith(QLatin1String("static"))) {
+        const qint64 day = m_clock.nowMs() / Q_INT64_C(86400000);
+        const qint64 markedDay = m_settings.value(QStringLiteral("narr/sday"), 0).toLongLong();
+        const int shown = markedDay == day
+            ? m_settings.value(QStringLiteral("narr/scount"), 0).toInt() : 0;
+        m_settings.setValue(QStringLiteral("narr/sday"), day);
+        m_settings.setValue(QStringLiteral("narr/scount"), shown + 1);
+        m_staticArmed = false;
+    } else if (pending.startsWith(QLatin1String("open"))) {
+        m_settings.setValue(
+            QStringLiteral("narr/b_open%1").arg(m_state.epoch), true);
+    } else if (pending.startsWith(QLatin1String("refound"))) {
+        m_settings.setValue(
+            QStringLiteral("narr/b_refound%1").arg(m_state.epoch), true);
     } else {
-        m_settings.setValue(QStringLiteral("narr/level"),
-                            m_settings.value(QStringLiteral("narr/level"), 0).toInt() + 1);
+        m_settings.setValue(QStringLiteral("narr/b_") + pending, true);
     }
     emit stateChanged();
+}
+
+void GrainController::appActivated()
+{
+    m_staticArmed = true;
+    emit stateChanged();
+}
+
+int GrainController::parkYear() const
+{
+    if (!m_state.arrived || m_state.arrivedAtMs <= 0)
+        return 0;
+    const qint64 elapsed = m_clock.nowMs() - m_state.arrivedAtMs;
+    if (elapsed <= 0)
+        return 0;
+    const int years = static_cast<int>(elapsed / Balance::kAgeYearMs);
+    return years > Balance::kMaxAge - Balance::kStartAge
+        ? Balance::kMaxAge - Balance::kStartAge : years;
+}
+
+bool GrainController::donutVisible() const
+{
+    return m_state.epochRecette >= 1000.0;
 }
 
 int GrainController::buyAmount() const { return m_buyAmount; }

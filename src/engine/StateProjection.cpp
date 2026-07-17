@@ -162,8 +162,11 @@ double cyclePayout(const GameState& s, int g)
 
 double tapValue(const GameState& s)
 {
-    return (Balance::kTapBase + Balance::kTapPerGate * s.gens[Balance::Gate].count)
-         * s.bonusMult * creatureMult(s) * echoMult(s);
+    const double manual = (Balance::kTapBase + Balance::kTapPerGate * s.gens[Balance::Gate].count)
+                        * s.bonusMult * creatureMult(s) * echoMult(s);
+    // Keep tapping meaningful once managers carry the park: a tap tracks the ticker.
+    const double share = Balance::kTapRpsShare * baseRps(s);
+    return manual > share ? manual : share;
 }
 
 double baseRps(const GameState& s)

@@ -39,6 +39,8 @@ class GrainController : public QObject
     Q_PROPERTY(double sleepPercent READ sleepPercent NOTIFY stateChanged)
     Q_PROPERTY(double focusPercent READ focusPercent NOTIFY stateChanged)
     Q_PROPERTY(int founderAge READ founderAgeQ NOTIFY liveChanged)
+    Q_PROPERTY(int parkYear READ parkYear NOTIFY liveChanged)
+    Q_PROPERTY(bool donutVisible READ donutVisible NOTIFY stateChanged)
     Q_PROPERTY(QVariantList generators READ generators NOTIFY stateChanged)
     Q_PROPERTY(QStringList creatures READ creatures NOTIFY stateChanged)
     Q_PROPERTY(double creatureBonusPercent READ creatureBonusPercent NOTIFY stateChanged)
@@ -86,6 +88,8 @@ public:
     double sleepPercent() const;
     double focusPercent() const;
     int founderAgeQ() const;
+    int parkYear() const;
+    bool donutVisible() const;
     int buyAmount() const;
     void setBuyAmount(int n);
 
@@ -113,6 +117,7 @@ public:
     Q_INVOKABLE void arrive();            // step past the intro
     Q_INVOKABLE void buyEcho(int i);      // one-shot improvement
     Q_INVOKABLE void ackNarration();      // mark the pending narration as shown
+    Q_INVOKABLE void appActivated();      // arms the ambient interference roll
     Q_INVOKABLE void inaugurate();
     Q_INVOKABLE void care(const QString& kind);   // "feed" | "linger"
     Q_INVOKABLE void bury();
@@ -164,6 +169,9 @@ private:
     QVector<QPair<qint64, double> > m_history;  // (instant, epochRecette) for the chart
     int m_historyEpoch = 0;
     QVector<QPair<qint64, double> > m_founderHistory;  // (instant, sleep) at each moment
+    bool m_staticArmed = true;   // one ambient-interference roll per app activation
+
+    bool beatSeen(const QString& key) const;
 };
 
 } // namespace grain

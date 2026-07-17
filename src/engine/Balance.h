@@ -45,6 +45,7 @@ static const int kMilestoneCount = 5;
 // Manual taps.
 static const double kTapBase    = 1.0;   // recette per tap
 static const double kTapPerGate = 0.25;  // taps scale gently with gates owned
+static const double kTapRpsShare = 0.01; // late game: a tap is worth >= 1% of managed income
 
 // The grand opening: a one-shot inauguration node, offered once per epoch.
 static const double kOpeningUnlock  = 100.0;  // epoch recette earned before the node shows
@@ -71,9 +72,9 @@ static const char* const kSpecies[kSpeciesCount] = {
 // Cover moments: the first lands within the opening session, then episodic; cadence tightens
 // with each 'bury'.
 static const qint64 kMomentFirstMs = Q_INT64_C(600000);      // ~10 min after the opening
-static const qint64 kMomentBaseMs  = Q_INT64_C(10800000);    // then ~3 h between moments
+static const qint64 kMomentBaseMs  = Q_INT64_C(3600000);     // then ~1 h between moments
 static const double kMomentDecay   = 0.85;                   // interval factor per net bury
-static const qint64 kMomentFloorMs = Q_INT64_C(2700000);     // never more often than 45 min
+static const qint64 kMomentFloorMs = Q_INT64_C(1500000);     // never more often than 25 min
 static const double kSitCostSeconds = 900.0;                 // sit costs ~15 min of income
 static const double kSitCostMin     = 50.0;
 
